@@ -3,24 +3,28 @@ import path from "node:path";
 import crypto from "node:crypto";
 import seedPrices from "../data/prices.json";
 import recyclerData from "../data/recyclers.json";
+import marketSnapshot from "../data/market-snapshot.json";
 import { detectDevice } from "./detect";
 import { assess } from "./health";
 import { advise, type Advice } from "./advisor";
 import { buildPassport } from "./passport";
 import { mergeMaterials } from "./green";
+import { buildMarket, fetchMarketListings, requirementsFrom } from "./market";
 import type {
   ActionRecord,
   Device,
   Diagnostic,
   Ledger,
+  MarketResponse,
   MaterialAmount,
   Passport,
   PriceEntry,
+  RawListing,
   Recycler,
   WipeRecord,
 } from "./types";
 
-const SEED_VERSION = 2;
+const SEED_VERSION = 3;
 
 type Data = {
   devices: Device[];
@@ -43,16 +47,87 @@ export type DeviceView = {
 
 export type ScanResult = DeviceView & { summary: string };
 
+type MarketFile = {
+  updatedAt: string | null;
+  sources: string[];
+  listings: RawListing[];
+};
+
+const SNAPSHOT = marketSnapshot as {
+  capturedAt: string;
+  sources: string[];
+  listings: RawListing[];
+};
+
 export class Store {
   private file: string;
   private data: Data;
+  private marketFile: string;
+  private marketData: MarketFile;
 
   constructor(private dir: string) {
     fs.mkdirSync(dir, { recursive: true });
     this.file = path.join(dir, "fahas-data.json");
+    this.marketFile = path.join(dir, "market.json");
     this.data = this.load();
     this.syncSeedData();
+    this.marketData = this.loadMarket();
     this.save();
+  }
+
+  private loadMarket(): MarketFile {
+    if (fs.existsSync(this.marketFile)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(this.marketFile, "utf8")) as Partial<MarketFile>;
+        if (Array.isArray(parsed.listings) && parsed.listings.length > 0) {
+          return {
+            updatedAt: parsed.updatedAt ?? null,
+            sources: parsed.sources ?? [],
+            listings: parsed.listings,
+          };
+        }
+      } catch {
+        /* fall back to the shipped snapshot */
+      }
+    }
+    return {
+      updatedAt: SNAPSHOT.capturedAt,
+      sources: SNAPSHOT.sources,
+      listings: SNAPSHOT.listings,
+    };
+  }
+
+  private saveMarket() {
+    const tmp = `${this.marketFile}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(this.marketData), { mode: 0o600 });
+    fs.renameSync(tmp, this.marketFile);
+  }
+
+  /** Market index for the OpenSooq snapshot, optionally scored against a device. */
+  market(deviceId?: string): MarketResponse {
+    const view = deviceId ? this.view(deviceId) : null;
+    const requirements = view ? requirementsFrom(view.device, view.diagnostic) : null;
+    return buildMarket(this.marketData.listings, this.marketData.updatedAt, this.marketData.sources, requirements);
+  }
+
+  /** Explicit, user-initiated refresh. Merges new listings; keeps old ones on failure. */
+  async refreshMarket(deviceId?: string): Promise<{ added: number; fetched: number; market: MarketResponse }> {
+    const { listings, sources } = await fetchMarketListings();
+    const known = new Map(this.marketData.listings.map((l) => [l.id, l]));
+    let added = 0;
+    for (const listing of listings) {
+      if (!known.has(listing.id)) added += 1;
+      known.set(listing.id, listing);
+    }
+    if (listings.length > 0) {
+      this.marketData = {
+        updatedAt: new Date().toISOString().slice(0, 10),
+        sources: sources.length ? sources : this.marketData.sources,
+        listings: [...known.values()].slice(-1200),
+      };
+      this.saveMarket();
+    }
+    return { added, fetched: listings.length, market: this.market(deviceId) };
   }
 
   private load(): Data {

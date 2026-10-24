@@ -11,6 +11,7 @@
     "dev": "npm run build:main && electron .",
     "start": "npm run dev",
     "test:scan": "esbuild test/scan.ts --bundle --platform=node --format=cjs --outfile=dist/test-scan.cjs && node dist/test-scan.cjs",
+    "test:market": "esbuild test/market.ts --bundle --platform=node --format=cjs --outfile=dist/test-market.cjs && node dist/test-market.cjs",
     "typecheck": "tsc --noEmit",
     "pack:linux": "npm run build:main && electron-builder --linux AppImage",
     "pack:win": "npm run build:main && electron-builder --win nsis",

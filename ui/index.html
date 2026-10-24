@@ -58,6 +58,7 @@
           <button class="tab" data-tab="advice">Remedies</button>
           <button class="tab" data-tab="impact">Impact</button>
           <button class="tab" data-tab="prices">Price book</button>
+          <button class="tab" data-tab="market">Market</button>
           <button class="tab" data-tab="recycle">Recycle</button>
           <button class="tab" data-tab="passport">Passport</button>
         </nav>
@@ -171,6 +172,55 @@
               Every row carries a source and a capture date. A price without provenance is a guess, so this app refuses
               to hide where the numbers came from.
             </p>
+          </div>
+        </section>
+
+        <section id="panel-market" class="panel hidden">
+          <div class="card">
+            <div class="card-head">
+              <h2>OpenSooq market index</h2>
+              <span class="muted small" id="marketMeta">Loading…</span>
+            </div>
+            <p class="muted small" id="marketCompat"></p>
+            <div class="filter-row">
+              <input id="mSearch" placeholder="Search Arabic or English — رام، nvme، بطارية، شاحن" />
+              <select id="mCategory">
+                <option value="all">All categories</option>
+                <option value="ram">RAM</option>
+                <option value="ssd">SSD</option>
+                <option value="hdd">HDD</option>
+                <option value="battery">Battery</option>
+                <option value="charger">Charger</option>
+                <option value="laptop">Laptop</option>
+                <option value="desktop">Desktop</option>
+                <option value="cooling">Cooling</option>
+                <option value="gpu">Graphics card</option>
+              </select>
+              <select id="mCondition">
+                <option value="all">Any condition</option>
+                <option value="new">New</option>
+                <option value="used">Used</option>
+              </select>
+              <input id="mMax" type="number" min="0" placeholder="Max JOD" />
+              <label class="inline"><input type="checkbox" id="mCompatible" checked /> Hide incompatible</label>
+              <label class="inline"><input type="checkbox" id="mPartsOnly" checked /> Parts only</label>
+              <label class="inline"><input type="checkbox" id="mOutliers" /> Show outliers</label>
+              <button id="mRefresh" class="ghost">Refresh listings</button>
+            </div>
+            <p class="muted small">
+              Refresh fetches public OpenSooq category and search pages — fourteen requests, no account and no
+              personal data. The shipped snapshot works fully offline.
+            </p>
+          </div>
+
+          <div id="marketBuckets" class="bucket-grid"></div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2>Listings</h2>
+              <span class="muted small" id="mCount"></span>
+            </div>
+            <div id="marketList" class="listing-list"></div>
           </div>
         </section>
 

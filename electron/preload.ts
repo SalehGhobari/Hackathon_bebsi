@@ -12,6 +12,8 @@ const api = {
   ledger: () => invoke("ledger"),
   prices: () => invoke("prices"),
   recyclers: () => invoke("recyclers"),
+  market: (deviceId?: string) => invoke("market:get", { deviceId }),
+  refreshMarket: (deviceId?: string) => invoke("market:refresh", { deviceId }),
   recordWipe: (deviceId: string, method: string, disk: string) =>
     invoke("wipe:add", { deviceId, method, disk }),
   passport: (deviceId: string) => invoke("passport", { deviceId }),

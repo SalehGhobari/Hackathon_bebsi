@@ -167,6 +167,87 @@ export type PriceEntry = {
   notes?: string;
 };
 
+export type MarketCategory =
+  | "ram"
+  | "ssd"
+  | "hdd"
+  | "battery"
+  | "charger"
+  | "laptop"
+  | "desktop"
+  | "gpu"
+  | "cpu"
+  | "motherboard"
+  | "cooling"
+  | "keyboard"
+  | "other";
+
+export type RawListing = {
+  id: string;
+  url: string;
+  title: string;
+  priceJod: number;
+  condition: string;
+  area: string;
+  oqCategory: string;
+  page: string;
+  capturedAt: string;
+};
+
+export type ParsedListing = RawListing & {
+  category: MarketCategory;
+  capacityGb: number | null;
+  ramGen: string | null;
+  formFactor: string | null;
+  bus: string | null;
+  watts: number | null;
+  variant: string | null;
+  brand: string | null;
+  condition: "new" | "used" | "unknown";
+  confidence: "high" | "medium" | "low";
+  tags: string[];
+  outlier: boolean;
+};
+
+export type CompatResult = {
+  status: "compatible" | "check" | "incompatible";
+  reasons: string[];
+};
+
+export type MarketListing = ParsedListing & { compatibility: CompatResult };
+
+export type MarketBucket = {
+  key: string;
+  label: string;
+  category: MarketCategory;
+  median: number;
+  p25: number;
+  p75: number;
+  min: number;
+  max: number;
+  n: number;
+  samples: { title: string; priceJod: number; url: string }[];
+};
+
+export type DeviceRequirements = {
+  ramGen: string | null;
+  ramForm: string | null;
+  storageBus: "NVMe" | "SATA" | null;
+  storageForm: string | null;
+  model: string | null;
+  kind: "laptop" | "desktop" | "other";
+};
+
+export type MarketResponse = {
+  updatedAt: string | null;
+  count: number;
+  outliers: number;
+  sources: string[];
+  listings: MarketListing[];
+  buckets: MarketBucket[];
+  requirements: DeviceRequirements | null;
+};
+
 export type Recycler = {
   id: string;
   name: string;

@@ -50,6 +50,30 @@ async function main() {
   const dir = path.join(os.tmpdir(), "fahas-test-store");
   const store = new Store(dir);
   const scan = await store.scan({ demo: true });
+
+  console.log("\n=== MARKET (OpenSooq snapshot) ===");
+  const market = store.market(scan.device.id);
+  console.log({
+    count: market.count,
+    outliers: market.outliers,
+    updatedAt: market.updatedAt,
+    requirements: market.requirements,
+    buckets: market.buckets.slice(0, 8).map((b) => `${b.label}: median ${b.median} JOD (n=${b.n})`),
+    categories: Object.fromEntries(
+      [...new Set(market.listings.map((l) => l.category))].map((c) => [
+        c,
+        market.listings.filter((l) => l.category === c).length,
+      ]),
+    ),
+    compat: Object.fromEntries(
+      ["compatible", "check", "incompatible"].map((s) => [s, market.listings.filter((l) => l.compatibility.status === s).length]),
+    ),
+  });
+  console.log("sample parse:");
+  for (const l of market.listings.filter((x) => x.category === "ram" || x.category === "charger").slice(0, 6)) {
+    console.log(`  [${l.category}] ${l.priceJod} JOD | ${l.ramGen ?? ""} ${l.capacityGb ?? ""} ${l.formFactor ?? ""} ${l.watts ?? ""} | ${l.title.slice(0, 60)} | ${l.compatibility.status}`);
+  }
+
   console.log("\n=== DEMO SCAN (simulated wear) ===");
   console.log({
     demo: scan.diagnostic?.demo,

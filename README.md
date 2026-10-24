@@ -54,6 +54,7 @@ costs in Amman, or what happens to the old one. Fahas is built around the decisi
 | Remedy engine (cost/year, CO₂e, materials) | Working |
 | Jordanian price book | Real, dated prices from GTS (retail) and OpenSooq (used, asking), captured 2026-10-24. Labour remains an estimate |
 | Impact ledger | Working (local JSON) |
+| OpenSooq market index | Working — 338 real listings, Arabic parsing, spec buckets, compatibility filter |
 | Second-life passport + QR | Working (signed hash, offline verification) |
 | Wipe attestation | Working — records the method as an **operator attestation**, not proof of erasure |
 | Demo mode | Working — simulates wear so a healthy laptop can demo the full advisor |
@@ -183,6 +184,46 @@ Honest limits:
 
 The dataset is versioned (`SEED_VERSION` in `lib/store.ts`); when the version changes, the app replaces the stored
 price book so stale rows never masquerade as current quotes.
+
+## Market index (OpenSooq)
+
+Classifieds are the real Jordanian price signal, but the listings are vague Arabic with inconsistent specs
+("رام لابتوب ddr3 4g", "16GB RAM + 256 SSD", "شاحن بطاقة" — actually a coin cell). `lib/market/` turns them into
+something usable.
+
+**What ships:** `data/market-snapshot.json` — **338 unique listings** captured 2026-10-24 from 14 public category and
+search pages, each with its URL, price, city and condition. The app works fully offline from the snapshot.
+
+**Parsing pipeline** (`lib/market/parse.ts`):
+
+1. **Arabic normalisation** — diacritics and tatweel removed, `أإآ → ا`, `ى → ي`, `ة → ه`, Arabic-Indic digits
+   converted, so `بطارية` and `بطاريه` match.
+2. **Category** — RAM, SSD, HDD, battery, charger, cooling, GPU, CPU, motherboard, keyboard, laptop, desktop, other.
+3. **Part vs machine** — "لابتوب i5 مع 8GB RAM + 256GB SSD" is a *laptop*, not a RAM stick. Without this, RAM medians
+   were inflated to 300–400 JOD.
+4. **Variant** — laptop battery vs coin cell, laptop charger vs 220→110V converter, thermal paste vs fan, internal vs
+   external drive. Only the relevant variant reaches a price bucket.
+5. **Specs** — capacity (GB/TB, Arabic units), DDR generation, form factor (SO-DIMM/DIMM, M.2/2.5"), wattage, brand,
+   condition, confidence.
+6. **Outliers** — per spec bucket, anything beyond 4× below or 3× above the median is flagged and excluded from
+   aggregates (42 of 338 in the current snapshot).
+
+**Compatibility** (`lib/market/compat.ts`) is conservative and derived from the detected machine
+(e.g. `DDR5 · SO-DIMM · NVMe · M.2`):
+
+- known mismatch → **incompatible** (wrong DDR generation, DIMM vs SO-DIMM, NVMe vs SATA)
+- known match → **compatible**, with the caveat to confirm slot count and M.2 length
+- missing data → **check**, never a guess
+
+**UI:** filters for search (Arabic or English), category, condition, max price, parts-only, hide-incompatible and
+outliers. Listings sort compatibility-first. Each row shows its normalised tags, confidence, city, and a "why" panel.
+Aggregates show median / P25–P75 / n per spec bucket.
+
+**Refresh** is opt-in and user-initiated: 14 requests to public OpenSooq pages, no account, no cookies, no personal
+data. If it fails or returns nothing, the existing snapshot stays.
+
+Known limits: prices are **asking** prices, seller text is often incomplete, and 338 listings are a sample — not a
+market census. The n value is shown everywhere so nobody mistakes a 3-listing median for the truth.
 
 ## Recycling partners
 

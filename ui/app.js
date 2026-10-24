@@ -9,6 +9,8 @@ const state = {
   passport: null,
   tab: "overview",
   recyclers: [],
+  market: null,
+  marketFor: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -161,6 +163,34 @@ function bind() {
     }
   });
 
+  ["mSearch", "mCategory", "mCondition", "mMax", "mCompatible", "mPartsOnly", "mOutliers"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", renderMarket);
+  });
+
+  $("#mRefresh").addEventListener("click", async () => {
+    const btn = $("#mRefresh");
+    btn.disabled = true;
+    btn.textContent = "Fetching public listings…";
+    try {
+      const res = await call(api.refreshMarket(state.view?.device.id));
+      state.market = res.market;
+      state.marketFor = state.view?.device.id ?? null;
+      renderMarket();
+      toast(
+        res.fetched === 0
+          ? "No listings returned — the existing snapshot is still in use."
+          : `Fetched ${res.fetched} listings, ${res.added} new.`,
+        res.fetched === 0 ? "error" : "ok",
+      );
+    } catch (err) {
+      toast(err.message, "error");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Refresh listings";
+    }
+  });
+
   $("#wipeBtn").addEventListener("click", async () => {
     if (!state.view) return;
     const method = $("#wipeMethod").value;
@@ -189,6 +219,8 @@ async function doScan() {
     const data = await call(api.scan(demo));
     state.view = data;
     state.passport = null;
+    state.market = null;
+    state.marketFor = null;
     state.ledger = await call(api.ledger());
     renderAll();
     renderLedger();
@@ -233,9 +265,12 @@ async function loadDevice(id) {
     if (!view) return;
     state.view = view;
     state.passport = null;
+    state.market = null;
+    state.marketFor = null;
     renderAll();
     renderDevicesActive();
     showEmpty(false);
+    if (state.tab === "market") loadMarket();
   } catch (err) {
     toast(err.message, "error");
   }
@@ -263,6 +298,7 @@ function switchTab(tab) {
     });
   }
   if (tab === "passport") renderPassport();
+  if (tab === "market") loadMarket();
 }
 
 /* ---------------- rendering ---------------- */
@@ -565,6 +601,123 @@ function renderPassport() {
         </div>
       </div>
     </div>`;
+}
+
+/* ---------------- market ---------------- */
+
+function normText(input) {
+  const digits = "٠١٢٣٤٥٦٧٨٩";
+  return String(input ?? "")
+    .normalize("NFKC")
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[٠-٩]/g, (d) => String(digits.indexOf(d)))
+    .toLowerCase();
+}
+
+async function loadMarket(force = false) {
+  const deviceId = state.view?.device.id;
+  if (!force && state.market && state.marketFor === (deviceId ?? null)) return;
+  try {
+    state.market = await call(api.market(deviceId));
+    state.marketFor = deviceId ?? null;
+    renderMarket();
+  } catch (err) {
+    toast(err.message, "error");
+  }
+}
+
+function bucketCard(b) {
+  return `
+    <div class="bucket">
+      <div class="bucket-label">${esc(b.label)}</div>
+      <div class="bucket-price">${money(b.median)} <small>JOD</small></div>
+      <div class="muted small">P25–P75 ${money(b.p25)}–${money(b.p75)} · n=${b.n}</div>
+    </div>`;
+}
+
+function listingRow(l) {
+  const arabic = (l.title.match(/[\u0600-\u06FF]/g) ?? []).length;
+  const rtl = arabic > 0 && arabic / Math.max(1, l.title.length) > 0.3;
+  const compatClass = l.compatibility.status === "compatible" ? "mint" : l.compatibility.status === "incompatible" ? "red" : "sand";
+  const compatLabel =
+    l.compatibility.status === "compatible" ? "Compatible" : l.compatibility.status === "incompatible" ? "Incompatible" : "Check specs";
+
+  return `
+    <div class="listing">
+      <div class="listing-main">
+        <div class="listing-title ${rtl ? "rtl" : ""}" ${rtl ? 'lang="ar" dir="rtl"' : ""}>${esc(l.title)}</div>
+        <div class="chips">
+          ${l.tags.map((t) => `<span class="chip">${esc(t)}</span>`).join("")}
+          ${l.outlier ? '<span class="badge red">outlier</span>' : ""}
+        </div>
+        <div class="muted small">${esc(l.area || "Jordan")} · ${esc(l.condition)} · ${esc(l.confidence)} confidence</div>
+        <details>
+          <summary>Why: ${compatLabel}</summary>
+          <ul>${l.compatibility.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
+        </details>
+      </div>
+      <div class="listing-side">
+        <div class="price">${money(l.priceJod)} <small>JOD</small></div>
+        <span class="badge ${compatClass}">${compatLabel}</span>
+        <a href="${esc(l.url)}" target="_blank" rel="noreferrer">Open listing</a>
+      </div>
+    </div>`;
+}
+
+function renderMarket() {
+  const market = state.market;
+  if (!market) return;
+
+  const compatCount = market.listings.filter((l) => l.compatibility.status === "compatible").length;
+  $("#marketMeta").textContent = `${market.count} listings · ${compatCount} compatible · captured ${market.updatedAt ?? "unknown"} · ${market.outliers} outliers flagged`;
+  const req = market.requirements;
+  $("#marketCompat").textContent = req
+    ? `Compatibility target: ${[req.ramGen, req.ramForm, req.storageBus, req.storageForm].filter(Boolean).join(" · ") || "not enough sensor data"} — checks use only what the seller wrote.`
+    : "No device selected; compatibility checks are unavailable until you run a check.";
+
+  const q = normText($("#mSearch").value);
+  const category = $("#mCategory").value;
+  const condition = $("#mCondition").value;
+  const max = Number($("#mMax").value) || Infinity;
+  const hideIncompatible = $("#mCompatible").checked;
+  const partsOnly = $("#mPartsOnly").checked;
+  const showOutliers = $("#mOutliers").checked;
+
+  const filtered = market.listings
+    .filter((l) => {
+      if (!showOutliers && l.outlier) return false;
+      if (partsOnly) {
+        if (["other", "keyboard"].includes(l.category)) return false;
+        if (["small", "converter", "external"].includes(l.variant ?? "")) return false;
+      }
+      if (category !== "all" && l.category !== category) return false;
+      if (condition !== "all" && l.condition !== condition) return false;
+      if (l.priceJod > max) return false;
+      if (hideIncompatible && l.compatibility.status === "incompatible") return false;
+      if (q && !normText(`${l.title} ${l.tags.join(" ")} ${l.oqCategory} ${l.brand ?? ""}`).includes(q)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const rank = { compatible: 0, check: 1, incompatible: 2 };
+      return (
+        rank[a.compatibility.status] - rank[b.compatibility.status] ||
+        a.category.localeCompare(b.category) ||
+        a.priceJod - b.priceJod
+      );
+    });
+
+  const buckets = market.buckets.filter((b) => category === "all" || b.category === category).slice(0, 8);
+  $("#marketBuckets").innerHTML = buckets.length
+    ? buckets.map(bucketCard).join("")
+    : '<p class="muted small">No price buckets for this filter yet.</p>';
+
+  $("#mCount").textContent = `${filtered.length} shown`;
+  $("#marketList").innerHTML = filtered.length
+    ? filtered.slice(0, 150).map(listingRow).join("")
+    : '<p class="muted small">No listings match these filters.</p>';
 }
 
 async function generatePassport() {

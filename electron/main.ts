@@ -77,6 +77,11 @@ function registerIpc() {
   handle("prices", () => store.prices());
   handle("recyclers", () => store.recyclers());
 
+  handle("market:get", (payload) => store.market((payload as { deviceId?: string } | undefined)?.deviceId));
+  handle("market:refresh", (payload) =>
+    store.refreshMarket((payload as { deviceId?: string } | undefined)?.deviceId),
+  );
+
   handle("wipe:add", (payload) => {
     const { deviceId, method, disk } = payload as { deviceId: string; method: string; disk: string };
     return store.recordWipe(deviceId, method, disk);

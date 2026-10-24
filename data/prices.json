@@ -309,16 +309,16 @@
     "item": "Used laptop / desktop",
     "spec": "Working used machines, assorted generations",
     "low": 60,
-    "high": 200,
+    "high": 390,
     "currency": "JOD",
     "unit": "each",
     "kind": "used",
     "vendor": "OpenSooq sellers",
     "city": "Amman",
-    "source": "OpenSooq Jordan — asking prices",
+    "source": "OpenSooq market index (20 used-laptop listings)",
     "sourceDate": "2026-10-24",
     "url": "https://jo.opensooq.com/en/computers-and-laptops/computers",
-    "notes": "Observed: used Dell laptop 60 JOD, i5 mini PC 85 JOD, complete i5 desktops 99–200 JOD. Condition and battery health unknown — inspect before paying."
+    "notes": "Market index median 305 JOD for used laptops (P25–P75 272–390, n=20); old desktops/mini PCs from 60–169 JOD. Condition and battery health unknown — inspect before paying."
   },
   {
     "id": "p-disposal-policy",

@@ -225,6 +225,35 @@ table.prices a, .remedy a { color: var(--mint); text-decoration: none; }
 table.prices a:hover, .remedy a:hover { text-decoration: underline; }
 table.prices tr:last-child td { border-bottom: none; }
 
+/* ---------- market ---------- */
+.filter-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.filter-row select { flex: 0 1 150px; min-width: 132px; }
+#mSearch { flex: 1 1 280px; min-width: 220px; }
+#mMax { flex: 0 0 110px; width: 110px; }
+.filter-row .ghost { flex: 0 0 auto; }
+label.inline { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; white-space: nowrap; font-size: 11.5px; color: var(--muted); }
+label.inline input { width: auto; accent-color: var(--mint); }
+
+.bucket-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+.bucket { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.bucket-label { font-size: 11.5px; color: var(--muted); }
+.bucket-price { font-size: 22px; font-weight: 800; letter-spacing: -.4px; margin: 2px 0; }
+.bucket-price small { font-size: 11px; color: var(--muted); font-weight: 500; }
+
+.listing-list { display: flex; flex-direction: column; }
+.listing { display: grid; grid-template-columns: 1fr 170px; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+.listing:first-child { border-top: none; }
+.listing-title { font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+.listing-title.rtl { font-size: 14px; }
+.listing-side { text-align: right; display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
+.listing-side .price { font-size: 18px; font-weight: 800; }
+.listing-side .price small { font-size: 10.5px; color: var(--muted); font-weight: 500; }
+.listing-side a { color: var(--mint); font-size: 11.5px; text-decoration: none; }
+.listing-side a:hover { text-decoration: underline; }
+.listing details { margin-top: 4px; }
+.listing summary { cursor: pointer; color: var(--muted); font-size: 11.5px; }
+.listing ul { margin: 6px 0 0; padding-left: 16px; color: var(--muted); font-size: 11.5px; }
+
 /* ---------- passport ---------- */
 #passportBox { margin-top: 14px; }
 .passport-grid { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
