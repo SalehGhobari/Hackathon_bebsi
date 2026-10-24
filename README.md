@@ -247,8 +247,8 @@ URL; **View photo** fetches that one image on demand and opens it full-size in t
 - Landlines: +962 6 5511533 · +962 6 5511532
 - Email: sudki2023@e-tafkeek.com
 - Hours: Saturday–Thursday, 9:00 AM – 4:00 PM
-- **Pickup:** call the mobile, give a rough count of your devices, send pictures — they send a car to your location
-  to collect the components
+- **Pickup (confirmed):** call the mobile, give a rough count of your devices, send pictures — they send a car to your
+  location to collect the components
 - Accepts: phones, TVs, computers/laptops, motherboards and PC cards, PCB boards, communications devices, other
   electrical waste
 - Also: resells refurbished machines and usable parts (HDD, optical drives, RAM), supplies sorted material to
@@ -261,7 +261,7 @@ URL; **View photo** fetches that one image on demand and opens it full-size in t
 - Phone: +962 6 5833 166 (landline)
 - Email: Sales2@nassergroup.com.jo
 - Hours: Sunday–Thursday, 9:00 AM – 4:00 PM
-- Collection: businesses, households, schools and government agencies, with specialised vehicles
+- Pickup: **not confirmed** — their site mentions collection, but the procedure could not be obtained. Call and ask.
 - Data destruction: wiping **and physical destruction** of hard drives, SSDs and memory cards (ask explicitly)
 - Also: component recovery (metals, plastics, boards), recycling, refurbishment (reusable devices resold or donated),
   environmental compliance, awareness programmes

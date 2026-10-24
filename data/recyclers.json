@@ -44,13 +44,6 @@
     "phones": [{ "number": "+962 6 5833 166", "type": "landline" }],
     "email": "Sales2@nassergroup.com.jo",
     "hours": "Sunday – Thursday, 9:00 AM – 4:00 PM",
-    "pickup": true,
-    "process": [
-      "Call or request a quote — they collect from businesses, households, schools and government agencies.",
-      "They transport the e-waste with specialised vehicles to their processing facility.",
-      "Ask explicitly for data destruction: wiping or physical destruction of HDD, SSD and memory cards.",
-      "Components are recovered; the rest is recycled, and reusable devices may be refurbished and resold or donated."
-    ],
     "accepts": [
       "Computers, laptops and servers",
       "Hard drives, SSDs and memory cards",
@@ -59,7 +52,7 @@
       "Metals, plastics and glass (after dismantling)"
     ],
     "services": [
-      "Collection and transportation from businesses, households, schools and government agencies",
+      "Collection advertised on their site — the exact procedure is unconfirmed, so ask when you call",
       "Secure data destruction: wiping and physical destruction of hard drives, SSDs and memory cards",
       "Component recovery: metals, plastics and circuit boards",
       "Recycling and refurbishment; reusable devices resold or donated for reuse",
@@ -69,6 +62,6 @@
     ],
     "sourceUrl": "https://nassergroup.com.jo/e-waste-management/",
     "contactUrl": "https://nassergroup.com.jo/contact-us/",
-    "notes": "Only a landline is published on the site (+962 6 5833 166). Ask whether they collect a single household device or only bulk loads, and request data destruction explicitly — their site offers wiping and physical destruction, which pairs with Fahas's wipe attestation. Sales address listed on the site: Sales2@nassergroup.com.jo. Map: https://maps.app.goo.gl/Fvz8bBdvUZLFJYUz9"
+    "notes": "Only a landline is published (+962 6 5833 166). Pickup is not documented: their site mentions collection, but the procedure could not be confirmed, so call and ask whether they take a single household device and how collection works. Request data destruction explicitly — their site offers wiping and physical destruction, which pairs with Fahas's wipe attestation. Sales address listed on the site: Sales2@nassergroup.com.jo. Map: https://maps.app.goo.gl/Fvz8bBdvUZLFJYUz9"
   }
 ]
