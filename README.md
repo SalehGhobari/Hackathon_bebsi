@@ -244,6 +244,21 @@ How it behaves:
 - **Confidence is shown** — including "confidence unavailable" when the engine fell back to block-text mode.
 - **Cached** — results are stored in `market-ocr.json` next to the price data, so a photo is read once.
 
+### Seeing it in the app
+
+![OCR in the Market tab](docs/market-ocr.png)
+
+1. Open the **Market** tab.
+2. Search `ValueRAM`.
+3. Untick **Hide incompatible** — both ValueRAM listings are DDR4 and the demo machine is DDR5, so they are hidden
+   by default (correctly).
+4. On a listing, click **Read photo** on the right.
+5. The listing gains `photo: DDR4`, `photo: 16 GB`, `photo: SO-DIMM` chips and a **Read from photo · 59% confidence**
+   block showing the OCR text. The seller's title stays untouched.
+
+The Market header reports `Photo OCR ready — Local OCR ready (bundled English + Arabic models)` when Tesseract is
+present, or the install hint for the OS when it is not.
+
 Requires the `tesseract` binary (models are bundled):
 
 - Arch: `sudo pacman -S tesseract`
