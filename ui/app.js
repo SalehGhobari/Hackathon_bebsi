@@ -881,17 +881,16 @@ function stashItemCard(item) {
       <div class="stash-actions">
         ${
           item.status === "stashed" && item.kind === "recycle"
-            ? `<button class="ghost mini" data-attach="${esc(item.id)}">${photo ? "Change photo" : "Attach photo"}</button>
-               <button class="ghost mini" data-remove-stash="${esc(item.id)}">Remove</button>`
+            ? `<button class="ghost mini" data-attach="${esc(item.id)}">${photo ? "Change photo" : "Attach photo"}</button>`
             : ""
         }
         ${
           item.status === "stashed" && item.kind === "replace"
             ? `<button class="primary mini" data-find-parts="${esc(item.id)}">Find parts</button>
-               <button class="ghost mini" data-mark-replaced="${esc(item.id)}">Mark replaced</button>
-               <button class="ghost mini" data-remove-stash="${esc(item.id)}">Remove</button>`
+               <button class="ghost mini" data-mark-replaced="${esc(item.id)}">Mark replaced</button>`
             : ""
         }
+        <button class="ghost mini" data-remove-stash="${esc(item.id)}">${item.status === "stashed" ? "Remove" : "Delete"}</button>
       </div>
     </article>`;
 }
