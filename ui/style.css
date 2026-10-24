@@ -388,3 +388,6 @@ select:focus, input:focus { outline: 1px solid var(--mint-dim); }
   padding: 6px 8px; font-size: 11px; color: var(--mint); word-break: break-all; direction: ltr;
 }
 .market-picks .ghost.mini + .ghost.mini { margin-inline-start: 6px; }
+
+/* ---------- recycle tab ---------- */
+.recycle-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }

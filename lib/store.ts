@@ -398,7 +398,7 @@ function applyDemoWear(detection: Awaited<ReturnType<typeof detectDevice>>) {
       i === 0
         ? {
             ...d,
-            smart: { ...d.smart, available: true, enduranceUsedPct: 87, temperatureC: 61, health: "passed" },
+            smart: { ...d.smart, available: true, enduranceUsedPct: 97, temperatureC: 61, health: "failed", mediaErrors: 12 },
           }
         : d,
     );

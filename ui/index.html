@@ -62,6 +62,7 @@
           <button class="tab active" data-tab="overview" data-i18n="nav.overview">Overview</button>
           <button class="tab" data-tab="fix" data-i18n="nav.fix">Fix it</button>
           <button class="tab" data-tab="market" data-i18n="nav.market">Market</button>
+          <button class="tab" data-tab="recycle" data-i18n="nav.recycle">Recycle</button>
           <button class="tab" data-tab="impact" data-i18n="nav.impact">Impact</button>
           <button class="tab" data-tab="more" data-i18n="nav.more">More</button>
         </nav>
@@ -205,6 +206,28 @@
           </div>
         </section>
 
+        <!-- RECYCLE -->
+        <section id="panel-recycle" class="panel hidden">
+          <div class="card summary-card">
+            <div class="card-head"><h2 data-i18n="recycle.decision">Retire or repair?</h2></div>
+            <p id="recycleDecision" class="summary-text"></p>
+            <div id="recycleActions" class="recycle-actions"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2 data-i18n="recycle.destroyTitle">Data destruction</h2></div>
+            <div id="destructionBox"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2 data-i18n="recycle.title">Where it actually goes</h2>
+              <span class="muted small" id="recyclerCount"></span>
+            </div>
+            <div id="recyclerList" class="remedy-list"></div>
+          </div>
+        </section>
+
         <!-- IMPACT -->
         <section id="panel-impact" class="panel hidden">
           <div class="grid-four" id="ledgerStats"></div>
@@ -239,14 +262,6 @@
                 <tbody id="priceTable"></tbody>
               </table>
             </div>
-          </div>
-
-          <div class="card">
-            <div class="card-head">
-              <h2 data-i18n="recycle.title">Where it actually goes</h2>
-              <span class="muted small" id="recyclerCount"></span>
-            </div>
-            <div id="recyclerList" class="remedy-list"></div>
           </div>
 
           <div class="card">

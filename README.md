@@ -120,8 +120,9 @@ window, and `icon.ico` is used by the Windows installer. The in-app copy is `ui/
 | **Overview** | health ring, findings, and collapsed "This machine" / "Sensor notes" |
 | **Fix it** | one recommendation, remedies with local market options, collapsed replacement baseline and decision log |
 | **Market** | search + category chips; extra filters and price ranges are behind folds |
+| **Recycle** | retire-or-repair verdict, per-drive destruction commands, wipe attestation, pickup message, partners |
 | **Impact** | avoided spend, CO₂e, diverted kilograms, recovered materials |
-| **More** | price book, recycling partners, second-life passport and data destruction |
+| **More** | price book and the second-life passport |
 
 Secondary controls sit behind disclosure folds, so the first screen answers one question at a time.
 
@@ -305,8 +306,9 @@ answer when wiping is not enough.
 ## Demo mode
 
 Healthy laptops produce a boring (and correct) "nothing needs replacing". Tick **Simulate wear** before running a
-check to overlay realistic faults — 58% battery, 812 cycles, 87% drive endurance, 94 °C idle, 6 GB RAM, 96% full
-disk. The diagnostic is flagged `demo: true`, the UI shows a banner, and the values are never presented as real.
+check to overlay realistic faults — 58% battery, 812 cycles, a **failing SMART status** on the system SSD, 94 °C idle,
+6 GB RAM, 96% full disk. That gives the Recycle tab a real reason to exist: it opens with *"Drive reports a failing
+SMART status — retire it and recycle it properly below."* The diagnostic is flagged `demo: true`, the UI shows a banner, and the values are never presented as real.
 
 ## Known limits
 

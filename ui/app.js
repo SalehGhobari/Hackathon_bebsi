@@ -157,6 +157,9 @@ function bind() {
       return;
     }
 
+  });
+
+  document.addEventListener("click", async (event) => {
     const wipeBtn = event.target.closest("[data-record-wipe]");
     if (wipeBtn && state.view) {
       const disk = wipeBtn.dataset.recordWipe || "drive";
@@ -165,6 +168,7 @@ function bind() {
         toast(t("toast.wipeRecorded", { disk }));
         state.view = await call(api.view(state.view.device.id));
         renderAll();
+        if (state.tab === "recycle") renderRecycle();
       } catch (err) {
         toast(err.message, "error");
       }
@@ -182,6 +186,9 @@ function bind() {
       }
       return;
     }
+
+    const fixBtn = event.target.closest("[data-open-fix]");
+    if (fixBtn) switchTab("fix");
   });
 
   $("#aiAsk").addEventListener("click", runAiSearch);
@@ -415,6 +422,7 @@ function switchTab(tab) {
   }
   if (tab === "more") renderPassport();
   if (tab === "market") loadMarket();
+  if (tab === "recycle") renderRecycle();
 }
 
 /* ---------------- rendering ---------------- */
@@ -433,6 +441,7 @@ function applyLanguage() {
   refreshDevices();
   if (state.tab === "market") renderMarket();
   if (state.tab === "more") renderPassport();
+  if (state.tab === "recycle") renderRecycle();
 }
 
 function renderAll() {
@@ -587,6 +596,32 @@ function remedyMarketBlock(remedy) {
   </div>`;
 }
 
+function renderRecycle() {
+  const decision = $("#recycleDecision");
+  const box = $("#destructionBox");
+  const actions = $("#recycleActions");
+  if (!decision || !box || !actions) return;
+
+  const view = state.view;
+  if (!view?.diagnostic) {
+    decision.textContent = t("recycle.needScan");
+    box.innerHTML = `<p class="muted small">${t("recycle.needScan")}</p>`;
+    actions.innerHTML = "";
+    return;
+  }
+
+  const fault = view.diagnostic.faults.find((f) => f.component === "Storage") ?? view.diagnostic.faults[0];
+  decision.textContent = fault
+    ? t("recycle.decisionFault", { device: view.device.name, fault: fault.title })
+    : t("recycle.decisionOk", { device: view.device.name, health: view.diagnostic.health.overall ?? "?" });
+
+  actions.innerHTML = `
+    <button class="ghost mini" data-open-fix="1">${t("recycle.openFix")}</button>
+    <button class="ghost mini" data-copy-pickup="1">${t("recycle.copyPickup")}</button>`;
+
+  box.innerHTML = destructionBlock();
+}
+
 function destructionBlock() {
   const diagnostic = state.view?.diagnostic;
   if (!diagnostic) return "";
@@ -602,8 +637,7 @@ function destructionBlock() {
     })
     .join("");
 
-  return `<div class="market-picks">
-    <div class="k muted small">${t("recycle.destroyTitle")}</div>
+  return `<div class="market-picks" style="margin-top:0">
     <p class="muted small" style="margin:4px 0">${t("recycle.destroyBackup")}</p>
     ${commands}
     <p class="muted small" style="margin:6px 0 0">${t("recycle.destroyPhysical")}</p>
@@ -682,8 +716,7 @@ function renderAdvice() {
         </details>
         <div class="price-refs">${r.priceRefs.map((p) => esc(p)).join("<br>")}</div>
         ${remedyMarketBlock(r)}
-        ${r.action === "recycle" ? recyclerBlock() : ""}
-        ${r.action === "recycle" ? destructionBlock() : ""}
+        ${["recycle", "storage-replace", "storage-upgrade", "replace-device"].includes(r.id) ? `<div class="market-picks"><button class="ghost mini" data-open-recycle="1">${t("recycle.openTab")}</button></div>` : ""}
         <div class="foot">
           <span class="muted small">${t("advice.confidence", { level: r.confidence })}</span>
           <button class="ghost" data-remedy="${esc(r.id)}">${r.action === "recycle" || r.action === "replace-device" ? t("advice.log") : t("advice.markDone")}</button>
