@@ -11,7 +11,6 @@ const state = {
   recyclers: [],
   market: null,
   marketFor: null,
-  ocrStatus: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -76,11 +75,6 @@ async function boot() {
 
     state.prices = await call(api.prices());
     state.recyclers = await call(api.recyclers());
-    try {
-      state.ocrStatus = await call(api.ocrStatus());
-    } catch {
-      state.ocrStatus = null;
-    }
     state.ledger = await call(api.ledger());
     renderPrices();
     renderRecyclers();
@@ -113,23 +107,6 @@ function bind() {
   $("#deviceList").addEventListener("click", (event) => {
     const btn = event.target.closest(".device");
     if (btn) loadDevice(btn.dataset.id);
-  });
-
-  $("#marketList").addEventListener("click", async (event) => {
-    const btn = event.target.closest("[data-read-photo]");
-    if (!btn || !state.view) return;
-    btn.disabled = true;
-    btn.textContent = "Reading…";
-    try {
-      await call(api.readPhoto(btn.dataset.readPhoto));
-      state.market = await call(api.market(state.view.device.id));
-      renderMarket();
-      toast("Photo read locally. Check any conflicts with the seller's text.");
-    } catch (err) {
-      toast(err.message, "error");
-      btn.disabled = false;
-      btn.textContent = "Read photo";
-    }
   });
 
   $("#remedyList").addEventListener("click", async (event) => {
@@ -691,67 +668,24 @@ function listingRow(l) {
   const compatLabel =
     l.compatibility.status === "compatible" ? "Compatible" : l.compatibility.status === "incompatible" ? "Incompatible" : "Check specs";
 
-  const trustedPhoto = l.photo && l.photo.quality && l.photo.quality.band === "high" ? l.photo : null;
-  const photoChips = trustedPhoto
-    ? [
-        l.photo.specs.ramGen,
-        l.photo.specs.capacityGb ? `${l.photo.specs.capacityGb} GB` : null,
-        l.photo.specs.formFactor,
-        l.photo.specs.bus,
-        l.photo.specs.watts ? `${l.photo.specs.watts} W` : null,
-      ].filter(Boolean)
-    : [];
-
   return `
     <div class="listing">
       <div class="listing-main">
         <div class="listing-title ${rtl ? "rtl" : ""}" ${rtl ? 'lang="ar" dir="rtl"' : ""}>${esc(l.title)}</div>
         <div class="chips">
           ${l.tags.map((t) => `<span class="chip">${esc(t)}</span>`).join("")}
-          ${photoChips.map((t) => `<span class="chip photo">photo: ${esc(t)}</span>`).join("")}
           ${l.outlier ? '<span class="badge red">outlier</span>' : ""}
-          ${trustedPhoto && trustedPhoto.conflicts.length ? '<span class="badge red">photo conflict</span>' : ""}
         </div>
         <div class="muted small">${esc(l.area || "Jordan")} · ${esc(l.condition)} · ${esc(l.confidence)} confidence</div>
         <details>
           <summary>Why: ${compatLabel}</summary>
           <ul>${l.compatibility.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
         </details>
-        ${
-          trustedPhoto
-            ? `<div class="photo-info">
-                 <div class="photo-info-head">
-                   <span class="badge mint">Verified from the photo</span>
-                   <span class="muted small">quality ${trustedPhoto.quality.score}/100 · ${trustedPhoto.quality.specHits} specs${trustedPhoto.confidence ? ` · ${trustedPhoto.confidence}% OCR confidence` : ""} · read ${new Date(trustedPhoto.createdAt).toLocaleDateString()}</span>
-                 </div>
-                 <div class="ocr-text" dir="auto">${esc(trustedPhoto.text)}</div>
-                 ${
-                   trustedPhoto.conflicts.length
-                     ? `<ul class="conflict-list">${trustedPhoto.conflicts
-                         .map(
-                           (c) =>
-                             `<li><strong>Conflict:</strong> seller says “${esc(c.title)}”, photo says “${esc(c.photo)}”</li>`,
-                         )
-                         .join("")}</ul>`
-                     : `<p class="muted small" style="margin:6px 0 0">No conflict with the seller's text.</p>`
-                 }
-               </div>`
-            : l.photo
-              ? `<p class="muted small" style="margin:7px 0 0">Photo read, but not clear enough to trust (quality ${l.photo.quality?.score ?? 0}/100). Text hidden.</p>`
-              : ""
-        }
       </div>
       <div class="listing-side">
         <div class="price">${money(l.priceJod)} <small>JOD</small></div>
         <span class="badge ${compatClass}">${compatLabel}</span>
         <a href="${esc(l.url)}" target="_blank" rel="noreferrer">Open listing</a>
-        ${
-          l.imageUrl && state.ocrStatus?.available
-            ? `<button class="ghost mini" data-read-photo="${esc(l.id)}" ${l.photo ? "disabled" : ""}>${
-                l.photo ? (trustedPhoto ? "Verified" : "Photo unclear") : "Read photo"
-              }</button>`
-            : ""
-        }
       </div>
     </div>`;
 }
@@ -763,12 +697,7 @@ function renderMarket() {
   const compatCount = market.listings.filter((l) => l.compatibility.status === "compatible").length;
   $("#marketMeta").textContent = `${market.count} listings · ${compatCount} compatible · captured ${market.updatedAt ?? "unknown"} · ${market.outliers} outliers flagged`;
 
-  const ocrNote = $("#ocrNote");
-  if (ocrNote) {
-    ocrNote.textContent = state.ocrStatus?.available
-      ? `Photo OCR ready — ${state.ocrStatus.note} Reading a photo downloads that public image once.`
-      : `Photo OCR unavailable — ${state.ocrStatus?.note ?? "Tesseract not detected."}`;
-  }
+
   const req = market.requirements;
   $("#marketCompat").textContent = req
     ? `Compatibility target: ${[req.ramGen, req.ramForm, req.storageBus, req.storageForm].filter(Boolean).join(" · ") || "not enough sensor data"} — checks use only what the seller wrote.`

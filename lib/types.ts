@@ -215,42 +215,7 @@ export type CompatResult = {
   reasons: string[];
 };
 
-export type PhotoSpecs = {
-  category: MarketCategory | null;
-  capacityGb: number | null;
-  ramGen: string | null;
-  formFactor: string | null;
-  bus: string | null;
-  watts: number | null;
-  brand: string | null;
-};
-
-export type PhotoQuality = {
-  band: "high" | "medium" | "low";
-  score: number;
-  confidence: number;
-  validRatio: number;
-  specHits: number;
-  categoryMatch: boolean;
-  reasons: string[];
-};
-
-export type PhotoRead = {
-  listingId: string;
-  imageUrl: string;
-  text: string;
-  confidence: number;
-  validRatio: number;
-  quality: PhotoQuality;
-  engine: string;
-  specs: PhotoSpecs;
-  filled: string[];
-  conflicts: { field: string; title: string; photo: string }[];
-  createdAt: string;
-  note?: string;
-};
-
-export type MarketListing = ParsedListing & { compatibility: CompatResult; photo?: PhotoRead | null };
+export type MarketListing = ParsedListing & { compatibility: CompatResult };
 
 export type MarketBucket = {
   key: string;

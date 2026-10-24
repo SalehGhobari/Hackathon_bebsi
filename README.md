@@ -55,7 +55,6 @@ costs in Amman, or what happens to the old one. Fahas is built around the decisi
 | Jordanian price book | Real, dated prices from GTS (retail) and OpenSooq (used, asking), captured 2026-10-24. Labour remains an estimate |
 | Impact ledger | Working (local JSON) |
 | OpenSooq market index | Working — 338 real listings, Arabic parsing, spec buckets, compatibility filter |
-| Photo OCR for listings | Working — on-demand local Tesseract, bundled eng+ara models, conflict flags |
 | Second-life passport + QR | Working (signed hash, offline verification) |
 | Wipe attestation | Working — records the method as an **operator attestation**, not proof of erasure |
 | Demo mode | Working — simulates wear so a healthy laptop can demo the full advisor |
@@ -66,10 +65,10 @@ costs in Amman, or what happens to the old one. Fahas is built around the decisi
 ## Requirements
 
 - **Node.js 20+** (22 recommended) and npm.
-- **Linux:** `smartmontools` for drive health, `lm-sensors` for temperatures, `tesseract` for reading listing photos.
-  All are optional — the app degrades and tells you the install command for your distro.
-  - Arch / Manjaro: `sudo pacman -S smartmontools lm_sensors tesseract`
-  - Ubuntu / Mint / Debian: `sudo apt install smartmontools lm-sensors tesseract-ocr`
+- **Linux:** `smartmontools` for drive health, `lm-sensors` for temperatures. Both are optional — the app
+  degrades and tells you the install command for your distro.
+  - Arch / Manjaro: `sudo pacman -S smartmontools lm_sensors`
+  - Ubuntu / Mint / Debian: `sudo apt install smartmontools lm-sensors`
 - **Windows:** nothing extra. Run as administrator for drive reliability counters and thermal zones.
 
 `smartctl` and DMI reads may require elevated access. Fahas does **not** ask for sudo and never runs elevated; it
@@ -222,91 +221,6 @@ Aggregates show median / P25–P75 / n per spec bucket.
 
 **Refresh** is opt-in and user-initiated: 14 requests to public OpenSooq pages, no account, no cookies, no personal
 data. If it fails or returns nothing, the existing snapshot stays.
-
-### Reading labels from photos (OCR)
-
-Listings often say "رام لابتوب" and nothing else, while the photo shows the actual label. Each listing carries its
-public photo URL; **Read photo** downloads that one image, runs OCR **locally**, and parses the text with the same
-Arabic-aware parser.
-
-Why OCR and not a small vision-language model: reading "DDR4 3200 16GB" is a text task. OCR gives characters you can
-verify and a confidence score; a tiny VLM will invent plausible specs. Accuracy beats fluency here.
-
-How it behaves:
-
-- **English first, Arabic second** — mixing both models injects garbage into Latin labels, so they run separately and
-  the better result wins.
-- **Bundled models** — `data/tessdata/eng.traineddata` + `ara.traineddata` (tessdata_fast, ~5.5 MB) and
-  `configs/tsv` (needed for confidence scoring) ship with the app, so results don't depend on which language packs a
-  distro installed. Packaged builds copy them to `resources/tessdata` via `extraResources`.
-- **Augment, never overwrite** — OCR text is parsed alongside the seller's title, but the displayed title stays the
-  seller's. Newly found fields are filled; **conflicts are flagged** ("seller says 512 GB, photo says 1 TB").
-- **Quality gate** — a photo is only shown and only allowed to change parsing when the read is trustworthy. See below.
-- **Cached** — results are stored in `market-ocr.json` next to the price data, so a photo is read once.
-
-### Only high-confidence, logical reads are shown
-
-Mean OCR confidence is a bad gate on real photos: a product-box shot contains watermarks, Arabic marketing text and
-the shop's phone number, which drags the average down even when the label itself is perfect. So `lib/market/quality.ts`
-scores **evidence**, not just confidence:
-
-```
-score = 35% · OCR confidence
-      + 20% · share of readable tokens
-      + 25% · extracted specs (capacity, DDR gen, form factor, bus, watts, brand)
-      + 20% · category match between the photo text and the listing
-```
-
-A read is **high** only if `score ≥ 70`, at least 2 specs were extracted, confidence ≥ 40, readable tokens ≥ 50%, and
-the category matches. Only high reads:
-
-- display the "Verified from the photo" panel, the OCR text and the `photo:` chips;
-- are merged into the listing before price buckets and compatibility are computed.
-
-Medium/low reads are hidden — the listing shows *"Photo read, but not clear enough to trust (quality 50/100). Text
-hidden."* and the button reads **Photo unclear**. Nothing from an unreliable read touches the data.
-
-Measured on the current snapshot:
-
-| Photo | Score | Band | Result |
-|---|---|---|---|
-| Kingston RAM label | **83** | high | 4 specs, SO-DIMM filled, displayed |
-| Blurry laptop-RAM photo | **50** | medium | 0 specs, hidden |
-
-### Seeing it in the app
-
-![OCR in the Market tab](docs/market-ocr.png)
-
-1. Open the **Market** tab.
-2. Search `ValueRAM`.
-3. Untick **Hide incompatible** — both ValueRAM listings are DDR4 and the demo machine is DDR5, so they are hidden
-   by default (correctly).
-4. On a listing, click **Read photo** on the right.
-5. The listing gains `photo: DDR4`, `photo: 16 GB`, `photo: SO-DIMM` chips, plus a visible
-   **Info read from the photo** panel: confidence, capture date, the raw OCR text, and any conflicts with the
-   seller's wording. The seller's title stays untouched.
-
-The Market header reports `Photo OCR ready — Local OCR ready (bundled English + Arabic models)` when Tesseract is
-present, or the install hint for the OS when it is not.
-
-Requires the `tesseract` binary (models are bundled):
-
-- Arch: `sudo pacman -S tesseract`
-- Ubuntu / Mint / Debian: `sudo apt install tesseract-ocr`
-- Windows: install the UB Mannheim Tesseract build, then ensure `tesseract.exe` is on PATH
-
-Test it without the GUI:
-
-```bash
-npm run test:ocr                     # reads the first RAM/SSD photo in the snapshot
-FAHAS_OCR_ID=<listing id> npm run test:ocr
-```
-
-Limits: low-resolution or glare-heavy photos, labels photographed at an angle, and mixed Arabic/English stickers all
-reduce accuracy. The app reports confidence instead of pretending.
-
-Known limits: prices are **asking** prices, seller text is often incomplete, and 338 listings are a sample — not a
-market census. The n value is shown everywhere so nobody mistakes a 3-listing median for the truth.
 
 ## Recycling partners
 

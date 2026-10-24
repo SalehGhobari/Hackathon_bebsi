@@ -3,7 +3,6 @@ import path from "node:path";
 import QRCode from "qrcode";
 import { Store } from "../lib/store";
 import { compactForQr, verifyPassport } from "../lib/passport";
-import { tesseractStatus } from "../lib/market/ocr";
 
 let store: Store;
 let win: BrowserWindow | null = null;
@@ -82,8 +81,7 @@ function registerIpc() {
   handle("market:refresh", (payload) =>
     store.refreshMarket((payload as { deviceId?: string } | undefined)?.deviceId),
   );
-  handle("market:readPhoto", (payload) => store.readPhoto((payload as { listingId: string }).listingId));
-  handle("market:ocrStatus", () => tesseractStatus());
+
 
   handle("wipe:add", (payload) => {
     const { deviceId, method, disk } = payload as { deviceId: string; method: string; disk: string };
