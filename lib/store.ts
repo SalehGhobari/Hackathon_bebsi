@@ -306,6 +306,8 @@ export class Store {
     if (!title) throw new Error("A stash item needs a title.");
     const quantity = Math.max(1, Math.min(99, Math.round(input.quantity ?? 1)));
     const now = new Date().toISOString();
+    const parsedAdded = input.addedAt ? new Date(`${input.addedAt}T12:00:00`) : null;
+    const createdAt = parsedAdded && !Number.isNaN(parsedAdded.getTime()) ? parsedAdded.toISOString() : now;
     const item: StashItem = {
       id: `stash-${crypto.randomUUID()}`,
       kind: input.kind,
@@ -327,7 +329,7 @@ export class Store {
         ? scaleImpact(input.impact, quantity)
         : impactForStash(input.kind, input.category || "other", input.deviceClass ?? null, quantity),
       replacedWith: null,
-      createdAt: now,
+      createdAt,
       updatedAt: now,
     };
     this.data.stash.unshift(item);

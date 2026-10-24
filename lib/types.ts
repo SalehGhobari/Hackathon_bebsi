@@ -380,6 +380,8 @@ export type AddStashInput = {
   kind: StashKind;
   source: StashSource;
   title: string;
+  /** Optional YYYY-MM-DD date; defaults to now. */
+  addedAt?: string;
   category: string;
   detail?: string;
   deviceId?: string | null;

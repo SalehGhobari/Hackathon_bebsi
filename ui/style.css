@@ -460,3 +460,4 @@ select:focus, input:focus { outline: 1px solid var(--mint-dim); }
 .inline-form input, .inline-form select { min-width: 0; }
 .inline-form input:not([type="number"]), .inline-form select { flex: 1 1 180px; }
 .inline-form input[type="number"] { width: 74px; flex: none; }
+.inline-form input[type="date"] { flex: 0 0 148px; }

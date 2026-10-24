@@ -78,6 +78,12 @@ function statusLabel(status) {
   return { stashed: "In stash", recycled: "Recycled", replaced: "Replaced" }[status] ?? status;
 }
 
+function todayIso() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
 function mergeMaterials(list) {
   const map = new Map();
   for (const m of list) map.set(m.name, (map.get(m.name) ?? 0) + m.grams);
@@ -119,6 +125,7 @@ async function boot() {
       state.aiStatus = null;
     }
     state.ledger = await call(api.ledger());
+    if ($("#recycleDate")) $("#recycleDate").value = todayIso();
     await refreshStash();
     await refreshDevices();
     renderAll();
@@ -220,10 +227,12 @@ function bind() {
           title,
           category: $("#recycleCategory").value,
           quantity: Number($("#recycleQty").value) || 1,
+          addedAt: $("#recycleDate").value || undefined,
         }),
       );
       $("#recycleTitle").value = "";
       $("#recycleQty").value = "1";
+      $("#recycleDate").value = todayIso();
       await refreshStash();
       toast(t("toast.stashed"));
     } catch (err) {
@@ -872,9 +881,10 @@ function stashItemCard(item) {
           <strong>${esc(item.title)}</strong>
           <span class="badge ${item.status === "recycled" ? "mint" : item.status === "replaced" ? "blue" : "sand"}">${statusLabel(item.status)}</span>
           <span class="badge">${sourceLabel(item.source)}</span>
+          <span class="badge">Added ${new Date(item.createdAt).toLocaleDateString()}</span>
         </div>
         ${item.detail ? `<div class="muted small">${esc(item.detail)}</div>` : ""}
-        <div class="muted small">${esc(bits.join(" · "))} · ${new Date(item.createdAt).toLocaleDateString()}</div>
+        <div class="muted small">${esc(bits.join(" · "))}</div>
         ${replaced}
         <textarea class="stash-notes" data-notes="${esc(item.id)}" rows="1" placeholder="Notes…">${esc(item.notes)}</textarea>
       </div>

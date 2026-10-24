@@ -36,7 +36,7 @@ export function renderRecycleHtml(batch: RecycleBatch, lang: "en" | "ar"): strin
           <strong>${esc(item.title)}</strong>
           <div class="detail">${esc(item.detail || item.category)}</div>
           ${item.notes ? `<div class="notes">${esc(item.notes)}</div>` : ""}
-          <div class="meta">${esc(item.category)} · ${t("source", "المصدر")}: ${esc(item.source)} · ${t("qty", "الكمية")}: ${item.quantity}</div>
+          <div class="meta">${esc(item.category)} · ${t("source", "المصدر")}: ${esc(item.source)} · ${t("qty", "الكمية")}: ${item.quantity} · ${t("added", "أُضيف")}: ${new Date(item.createdAt).toLocaleDateString()}</div>
         </td>
         <td class="mass">${kg(item.impact.kgDiverted)} kg</td>
       </tr>`;
