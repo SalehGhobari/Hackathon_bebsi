@@ -253,8 +253,9 @@ How it behaves:
 3. Untick **Hide incompatible** — both ValueRAM listings are DDR4 and the demo machine is DDR5, so they are hidden
    by default (correctly).
 4. On a listing, click **Read photo** on the right.
-5. The listing gains `photo: DDR4`, `photo: 16 GB`, `photo: SO-DIMM` chips and a **Read from photo · 59% confidence**
-   block showing the OCR text. The seller's title stays untouched.
+5. The listing gains `photo: DDR4`, `photo: 16 GB`, `photo: SO-DIMM` chips, plus a visible
+   **Info read from the photo** panel: confidence, capture date, the raw OCR text, and any conflicts with the
+   seller's wording. The seller's title stays untouched.
 
 The Market header reports `Photo OCR ready — Local OCR ready (bundled English + Arabic models)` when Tesseract is
 present, or the install hint for the OS when it is not.

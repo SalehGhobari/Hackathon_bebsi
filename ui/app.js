@@ -718,20 +718,23 @@ function listingRow(l) {
         </details>
         ${
           l.photo
-            ? `<details>
-                 <summary>Read from photo · ${l.photo.confidence ? `${l.photo.confidence}% confidence` : "confidence unavailable"}</summary>
-                 <div class="ocr-text">${esc(l.photo.text)}</div>
+            ? `<div class="photo-info">
+                 <div class="photo-info-head">
+                   <span class="badge blue">Info read from the photo</span>
+                   <span class="muted small">${l.photo.confidence ? `${l.photo.confidence}% confidence` : "confidence unavailable"} · read ${new Date(l.photo.createdAt).toLocaleDateString()}</span>
+                 </div>
+                 <div class="ocr-text" dir="auto">${esc(l.photo.text)}</div>
                  ${
                    l.photo.conflicts.length
-                     ? `<ul>${l.photo.conflicts
+                     ? `<ul class="conflict-list">${l.photo.conflicts
                          .map(
                            (c) =>
                              `<li><strong>Conflict:</strong> seller says “${esc(c.title)}”, photo says “${esc(c.photo)}”</li>`,
                          )
                          .join("")}</ul>`
-                     : ""
+                     : `<p class="muted small" style="margin:6px 0 0">No conflict with the seller's text.</p>`
                  }
-               </details>`
+               </div>`
             : ""
         }
       </div>
