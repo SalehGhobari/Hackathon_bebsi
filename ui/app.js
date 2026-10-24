@@ -691,7 +691,8 @@ function listingRow(l) {
   const compatLabel =
     l.compatibility.status === "compatible" ? "Compatible" : l.compatibility.status === "incompatible" ? "Incompatible" : "Check specs";
 
-  const photoChips = l.photo
+  const trustedPhoto = l.photo && l.photo.quality && l.photo.quality.band === "high" ? l.photo : null;
+  const photoChips = trustedPhoto
     ? [
         l.photo.specs.ramGen,
         l.photo.specs.capacityGb ? `${l.photo.specs.capacityGb} GB` : null,
@@ -709,7 +710,7 @@ function listingRow(l) {
           ${l.tags.map((t) => `<span class="chip">${esc(t)}</span>`).join("")}
           ${photoChips.map((t) => `<span class="chip photo">photo: ${esc(t)}</span>`).join("")}
           ${l.outlier ? '<span class="badge red">outlier</span>' : ""}
-          ${l.photo && l.photo.conflicts.length ? '<span class="badge red">photo conflict</span>' : ""}
+          ${trustedPhoto && trustedPhoto.conflicts.length ? '<span class="badge red">photo conflict</span>' : ""}
         </div>
         <div class="muted small">${esc(l.area || "Jordan")} · ${esc(l.condition)} · ${esc(l.confidence)} confidence</div>
         <details>
@@ -717,16 +718,16 @@ function listingRow(l) {
           <ul>${l.compatibility.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
         </details>
         ${
-          l.photo
+          trustedPhoto
             ? `<div class="photo-info">
                  <div class="photo-info-head">
-                   <span class="badge blue">Info read from the photo</span>
-                   <span class="muted small">${l.photo.confidence ? `${l.photo.confidence}% confidence` : "confidence unavailable"} · read ${new Date(l.photo.createdAt).toLocaleDateString()}</span>
+                   <span class="badge mint">Verified from the photo</span>
+                   <span class="muted small">quality ${trustedPhoto.quality.score}/100 · ${trustedPhoto.quality.specHits} specs${trustedPhoto.confidence ? ` · ${trustedPhoto.confidence}% OCR confidence` : ""} · read ${new Date(trustedPhoto.createdAt).toLocaleDateString()}</span>
                  </div>
-                 <div class="ocr-text" dir="auto">${esc(l.photo.text)}</div>
+                 <div class="ocr-text" dir="auto">${esc(trustedPhoto.text)}</div>
                  ${
-                   l.photo.conflicts.length
-                     ? `<ul class="conflict-list">${l.photo.conflicts
+                   trustedPhoto.conflicts.length
+                     ? `<ul class="conflict-list">${trustedPhoto.conflicts
                          .map(
                            (c) =>
                              `<li><strong>Conflict:</strong> seller says “${esc(c.title)}”, photo says “${esc(c.photo)}”</li>`,
@@ -735,7 +736,9 @@ function listingRow(l) {
                      : `<p class="muted small" style="margin:6px 0 0">No conflict with the seller's text.</p>`
                  }
                </div>`
-            : ""
+            : l.photo
+              ? `<p class="muted small" style="margin:7px 0 0">Photo read, but not clear enough to trust (quality ${l.photo.quality?.score ?? 0}/100). Text hidden.</p>`
+              : ""
         }
       </div>
       <div class="listing-side">
@@ -744,7 +747,9 @@ function listingRow(l) {
         <a href="${esc(l.url)}" target="_blank" rel="noreferrer">Open listing</a>
         ${
           l.imageUrl && state.ocrStatus?.available
-            ? `<button class="ghost mini" data-read-photo="${esc(l.id)}" ${l.photo ? "disabled" : ""}>${l.photo ? "Photo read" : "Read photo"}</button>`
+            ? `<button class="ghost mini" data-read-photo="${esc(l.id)}" ${l.photo ? "disabled" : ""}>${
+                l.photo ? (trustedPhoto ? "Verified" : "Photo unclear") : "Read photo"
+              }</button>`
             : ""
         }
       </div>

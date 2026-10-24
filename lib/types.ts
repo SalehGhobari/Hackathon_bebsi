@@ -225,11 +225,23 @@ export type PhotoSpecs = {
   brand: string | null;
 };
 
+export type PhotoQuality = {
+  band: "high" | "medium" | "low";
+  score: number;
+  confidence: number;
+  validRatio: number;
+  specHits: number;
+  categoryMatch: boolean;
+  reasons: string[];
+};
+
 export type PhotoRead = {
   listingId: string;
   imageUrl: string;
   text: string;
   confidence: number;
+  validRatio: number;
+  quality: PhotoQuality;
   engine: string;
   specs: PhotoSpecs;
   filled: string[];

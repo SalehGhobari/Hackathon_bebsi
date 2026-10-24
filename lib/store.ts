@@ -12,6 +12,7 @@ import { mergeMaterials } from "./green";
 import { buildMarket, fetchMarketListings, requirementsFrom } from "./market";
 import { ocrImage } from "./market/ocr";
 import { parseListing } from "./market/parse";
+import { assessPhotoQuality } from "./market/quality";
 import type {
   ActionRecord,
   Device,
@@ -113,17 +114,29 @@ export class Store {
     if (!ocr.ok) throw new Error(ocr.note ?? "Could not read this photo.");
 
     const base = parseListing(raw);
-    const merged = parseListing({ ...raw, title: `${raw.title} ${ocr.text}` });
+    // Judge the photo on its own text, never on the seller's words.
+    const photoOnly = parseListing({ ...raw, title: ocr.text });
+    const quality = assessPhotoQuality({
+      confidence: ocr.confidence,
+      validRatio: ocr.validRatio,
+      listingCategory: base.category,
+      photoOnly,
+    });
+
+    const usable = quality.band === "high";
+    const merged = usable ? parseListing({ ...raw, title: `${raw.title} ${ocr.text}` }) : base;
     const fields = ["capacityGb", "ramGen", "formFactor", "bus", "watts", "brand"] as const;
     const filled: string[] = [];
     const conflicts: PhotoRead["conflicts"] = [];
 
-    for (const field of fields) {
-      const fromTitle = base[field];
-      const fromPhoto = merged[field];
-      if (fromTitle === null && fromPhoto !== null) filled.push(field);
-      else if (fromTitle !== null && fromPhoto !== null && String(fromTitle).toUpperCase() !== String(fromPhoto).toUpperCase()) {
-        conflicts.push({ field, title: String(fromTitle), photo: String(fromPhoto) });
+    if (usable) {
+      for (const field of fields) {
+        const fromTitle = base[field];
+        const fromPhoto = merged[field];
+        if (fromTitle === null && fromPhoto !== null) filled.push(field);
+        else if (fromTitle !== null && fromPhoto !== null && String(fromTitle).toUpperCase() !== String(fromPhoto).toUpperCase()) {
+          conflicts.push({ field, title: String(fromTitle), photo: String(fromPhoto) });
+        }
       }
     }
 
@@ -142,6 +155,8 @@ export class Store {
       imageUrl: raw.imageUrl,
       text: ocr.text,
       confidence: ocr.confidence,
+      validRatio: ocr.validRatio,
+      quality,
       engine: ocr.engine,
       specs,
       filled,

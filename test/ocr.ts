@@ -30,6 +30,8 @@ async function main() {
   console.log(`took ${Date.now() - started} ms`);
   console.log({
     confidence: photo.confidence,
+    validRatio: photo.validRatio,
+    quality: photo.quality,
     engine: photo.engine,
     specs: photo.specs,
     filled: photo.filled,

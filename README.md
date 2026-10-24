@@ -241,8 +241,37 @@ How it behaves:
   distro installed. Packaged builds copy them to `resources/tessdata` via `extraResources`.
 - **Augment, never overwrite** — OCR text is parsed alongside the seller's title, but the displayed title stays the
   seller's. Newly found fields are filled; **conflicts are flagged** ("seller says 512 GB, photo says 1 TB").
-- **Confidence is shown** — including "confidence unavailable" when the engine fell back to block-text mode.
+- **Quality gate** — a photo is only shown and only allowed to change parsing when the read is trustworthy. See below.
 - **Cached** — results are stored in `market-ocr.json` next to the price data, so a photo is read once.
+
+### Only high-confidence, logical reads are shown
+
+Mean OCR confidence is a bad gate on real photos: a product-box shot contains watermarks, Arabic marketing text and
+the shop's phone number, which drags the average down even when the label itself is perfect. So `lib/market/quality.ts`
+scores **evidence**, not just confidence:
+
+```
+score = 35% · OCR confidence
+      + 20% · share of readable tokens
+      + 25% · extracted specs (capacity, DDR gen, form factor, bus, watts, brand)
+      + 20% · category match between the photo text and the listing
+```
+
+A read is **high** only if `score ≥ 70`, at least 2 specs were extracted, confidence ≥ 40, readable tokens ≥ 50%, and
+the category matches. Only high reads:
+
+- display the "Verified from the photo" panel, the OCR text and the `photo:` chips;
+- are merged into the listing before price buckets and compatibility are computed.
+
+Medium/low reads are hidden — the listing shows *"Photo read, but not clear enough to trust (quality 50/100). Text
+hidden."* and the button reads **Photo unclear**. Nothing from an unreliable read touches the data.
+
+Measured on the current snapshot:
+
+| Photo | Score | Band | Result |
+|---|---|---|---|
+| Kingston RAM label | **83** | high | 4 specs, SO-DIMM filled, displayed |
+| Blurry laptop-RAM photo | **50** | medium | 0 specs, hidden |
 
 ### Seeing it in the app
 

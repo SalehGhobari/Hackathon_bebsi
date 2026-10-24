@@ -24,7 +24,8 @@ export function buildMarket(
   const originalTitle = new Map(raw.map((listing) => [listing.id, listing.title]));
   const enriched = raw.map((listing) => {
     const photo = photos[listing.id];
-    if (!photo || !photo.text) return { listing, photo: null };
+    // Only high-quality reads are allowed to change what the marker parses.
+    if (!photo || !photo.text || photo.quality?.band !== "high") return { listing, photo: photo ?? null };
     return { listing: { ...listing, title: `${listing.title} ${photo.text}` }, photo };
   });
 

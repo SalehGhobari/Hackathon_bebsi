@@ -10,6 +10,7 @@ export type OcrResult = {
   ok: boolean;
   text: string;
   confidence: number;
+  validRatio: number;
   engine: string;
   note?: string;
 };
@@ -68,10 +69,17 @@ export async function tesseractStatus(): Promise<OcrStatus> {
   return statusCache;
 }
 
-function parseTsv(tsv: string): { text: string; confidence: number } {
+function isReadableToken(word: string): boolean {
+  const clean = word.replace(/[^\p{L}\p{N}]/gu, "");
+  return clean.length >= 2 && /[\p{L}\p{N}]/u.test(clean);
+}
+
+function parseTsv(tsv: string): { text: string; confidence: number; validRatio: number } {
   const lines = tsv.split("\n").slice(1);
   const words: string[] = [];
   const confidences: number[] = [];
+  let total = 0;
+  let valid = 0;
 
   for (const line of lines) {
     const cols = line.split("\t");
@@ -79,15 +87,21 @@ function parseTsv(tsv: string): { text: string; confidence: number } {
     const conf = Number(cols[10]);
     const word = cols[11]?.trim();
     if (!word) continue;
+
+    total += 1;
     words.push(word);
-    if (Number.isFinite(conf) && conf >= 0) confidences.push(conf);
+    if (isReadableToken(word)) {
+      valid += 1;
+      if (Number.isFinite(conf) && conf >= 0) confidences.push(conf);
+    }
   }
 
   const confidence = confidences.length
     ? Math.round(confidences.reduce((a, b) => a + b, 0) / confidences.length)
     : 0;
+  const validRatio = total ? Math.round((valid / total) * 100) / 100 : 0;
 
-  return { text: words.join(" ").replace(/\s+/g, " ").trim(), confidence };
+  return { text: words.join(" ").replace(/\s+/g, " ").trim(), confidence, validRatio };
 }
 
 async function fetchImage(url: string): Promise<{ file: string; cleanup: () => void }> {
@@ -116,7 +130,7 @@ async function runTsv(
   langs: string,
   tessdata: string | null,
   psm: string,
-): Promise<{ text: string; confidence: number }> {
+): Promise<{ text: string; confidence: number; validRatio: number }> {
   const args = [file, "stdout", "-l", langs, ...(tessdata ? ["--tessdata-dir", tessdata] : []), "--psm", psm, "tsv"];
   const { stdout } = await exec("tesseract", args, { timeout: 60_000, maxBuffer: 8 * 1024 * 1024 });
   return parseTsv(stdout);
@@ -124,7 +138,9 @@ async function runTsv(
 
 export async function ocrImage(url: string): Promise<OcrResult> {
   const status = await tesseractStatus();
-  if (!status.available) return { ok: false, text: "", confidence: 0, engine: "none", note: status.note };
+  if (!status.available) {
+    return { ok: false, text: "", confidence: 0, validRatio: 0, engine: "none", note: status.note };
+  }
 
   const langs = status.tessdata ? "eng+ara" : "eng";
 
@@ -134,7 +150,7 @@ export async function ocrImage(url: string): Promise<OcrResult> {
 
     // Product labels are mostly Latin. Try English first; Arabic second. Mixing both
     // models injects garbage into English labels, so run them separately and keep the best.
-    const attempts: { text: string; confidence: number }[] = [];
+    const attempts: { text: string; confidence: number; validRatio: number }[] = [];
     for (const lang of ["eng", "ara"]) {
       try {
         const attempt = await runTsv(image.file, lang === "ara" && !status.tessdata ? "eng" : lang, status.tessdata, "11");
@@ -144,7 +160,8 @@ export async function ocrImage(url: string): Promise<OcrResult> {
       }
     }
 
-    const score = (a: { text: string; confidence: number }) => a.confidence * 2 + Math.min(a.text.length, 200);
+    const score = (a: { text: string; confidence: number; validRatio: number }) =>
+      a.confidence * 2 + a.validRatio * 25 + Math.min(a.text.length, 200);
     attempts.sort((a, b) => score(b) - score(a));
     let parsed = attempts[0];
 
@@ -158,6 +175,7 @@ export async function ocrImage(url: string): Promise<OcrResult> {
         ok: false,
         text: "",
         confidence: 0,
+        validRatio: 0,
         engine: status.engine ?? "tesseract",
         note: "No readable text found in this photo.",
       };
@@ -167,6 +185,7 @@ export async function ocrImage(url: string): Promise<OcrResult> {
       ok: true,
       text: parsed.text,
       confidence: parsed.confidence,
+      validRatio: parsed.validRatio,
       engine: status.engine ?? "tesseract",
     };
   } catch (err) {
@@ -174,6 +193,7 @@ export async function ocrImage(url: string): Promise<OcrResult> {
       ok: false,
       text: "",
       confidence: 0,
+      validRatio: 0,
       engine: status.engine ?? "tesseract",
       note: err instanceof Error ? err.message : String(err),
     };
