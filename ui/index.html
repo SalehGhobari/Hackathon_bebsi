@@ -21,21 +21,23 @@
           </div>
         </div>
 
-        <button id="scanBtn" class="primary wide">Run a check</button>
+        <button id="scanBtn" class="primary wide" data-i18n="scan.run">Run a check</button>
         <label class="demo-toggle">
           <input type="checkbox" id="demoToggle" />
-          <span>Simulate wear <small>(demo mode)</small></span>
+          <span data-i18n="scan.demo">Simulate wear</span>
+          <small data-i18n="scan.demoNote">(demo mode)</small>
         </label>
 
-        <div class="label">Devices</div>
+        <div class="label" data-i18n="side.devices">Devices</div>
         <div id="deviceList" class="device-list"></div>
 
         <div class="side-foot">
+          <button id="langBtn" class="ghost wide" data-i18n="side.language">العربية</button>
           <div class="privacy">
             <span class="dot"></span>
             <div>
-              Local only
-              <small>No network · no account · no upload</small>
+              <span data-i18n="side.local">Local only</span>
+              <small data-i18n="side.localNote">No network · no account · no upload</small>
             </div>
           </div>
           <div id="infoLine" class="tiny"></div>
@@ -54,29 +56,30 @@
         </header>
 
         <nav class="tabs" id="tabs">
-          <button class="tab active" data-tab="overview">Overview</button>
-          <button class="tab" data-tab="advice">Remedies</button>
-          <button class="tab" data-tab="impact">Impact</button>
-          <button class="tab" data-tab="prices">Price book</button>
-          <button class="tab" data-tab="market">Market</button>
-          <button class="tab" data-tab="recycle">Recycle</button>
-          <button class="tab" data-tab="passport">Passport</button>
+          <button class="tab active" data-tab="overview" data-i18n="nav.overview">Overview</button>
+          <button class="tab" data-tab="advice" data-i18n="nav.remedies">Remedies</button>
+          <button class="tab" data-tab="impact" data-i18n="nav.impact">Impact</button>
+          <button class="tab" data-tab="prices" data-i18n="nav.prices">Price book</button>
+          <button class="tab" data-tab="market" data-i18n="nav.market">Market</button>
+          <button class="tab" data-tab="recycle" data-i18n="nav.recycle">Recycle</button>
+          <button class="tab" data-tab="passport" data-i18n="nav.passport">Passport</button>
         </nav>
 
         <div id="toast" class="toast hidden"></div>
-        <div id="demoBanner" class="demo-banner hidden">
+        <div id="demoBanner" class="demo-banner hidden" data-i18n="demo.banner">
           DEMO MODE · sensor values are simulated for this scan. Real data was not used.
         </div>
+        <div id="partialNote" class="muted small hidden" style="margin: -6px 0 12px"></div>
 
         <div id="empty" class="empty panel">
           <div class="empty-inner">
             <div class="empty-mark">ف</div>
-            <h2>Start with this machine</h2>
-            <p>
+            <h2 data-i18n="scan.emptyTitle">Start with this machine</h2>
+            <p data-i18n="scan.emptyBody">
               Fahas reads battery wear, drive health, memory headroom and thermals — on your device, with no network
               access. Missing sensors are reported as “unknown”, never invented.
             </p>
-            <button id="emptyScan" class="primary">Run a check</button>
+            <button id="emptyScan" class="primary" data-i18n="scan.run">Run a check</button>
           </div>
         </div>
 
@@ -84,7 +87,7 @@
           <div class="grid-two">
             <div class="card">
               <div class="card-head">
-                <h2>Health</h2>
+                <h2 data-i18n="overview.health">Health</h2>
                 <span class="muted" id="healthNote"></span>
               </div>
               <div id="healthSummary" class="health-summary"></div>
@@ -93,17 +96,17 @@
 
             <div>
               <div class="card">
-                <div class="card-head"><h2>Findings</h2></div>
+                <div class="card-head"><h2 data-i18n="overview.findings">Findings</h2></div>
                 <div id="faultList" class="fault-list"></div>
               </div>
 
               <div class="card">
-                <div class="card-head"><h2>This machine</h2></div>
+                <div class="card-head"><h2 data-i18n="overview.machine">This machine</h2></div>
                 <div id="specList" class="spec-list"></div>
               </div>
 
               <div class="card">
-                <div class="card-head"><h2>Sensor notes</h2></div>
+                <div class="card-head"><h2 data-i18n="overview.notes">Sensor notes</h2></div>
                 <ul id="hintList" class="hints"></ul>
               </div>
             </div>
@@ -112,9 +115,9 @@
 
         <section id="panel-advice" class="panel hidden">
           <div class="card summary-card">
-            <div class="card-head"><h2>Recommendation</h2></div>
+            <div class="card-head"><h2 data-i18n="advice.summary">Recommendation</h2></div>
             <p id="adviceSummary" class="summary-text"></p>
-            <p class="muted small">
+            <p class="muted small" data-i18n="advice.rankNote">
               Ranked by the waste hierarchy first (prevent → reuse → repair → recycle → replace), then by cost per year
               of added life. Prices are Jordanian ranges with a source and a date.
             </p>
@@ -124,7 +127,7 @@
           <div id="replacementBox"></div>
 
           <div class="card">
-            <div class="card-head"><h2>Logged decisions</h2></div>
+            <div class="card-head"><h2 data-i18n="advice.logged">Logged decisions</h2></div>
             <div id="actionList" class="action-list"></div>
           </div>
         </section>
@@ -132,16 +135,16 @@
         <section id="panel-impact" class="panel hidden">
           <div class="grid-four" id="ledgerStats"></div>
           <div class="card">
-            <div class="card-head"><h2>Materials kept in circulation</h2></div>
+            <div class="card-head"><h2 data-i18n="impact.materials">Materials kept in circulation</h2></div>
             <div id="ledgerMaterials" class="chips"></div>
-            <p class="muted small">
+            <p class="muted small" data-i18n="impact.note">
               Estimates from published lifecycle ranges. Ranges, not false precision — and recycling recovers materials,
               it does not undo manufacturing.
             </p>
           </div>
           <div class="card">
-            <div class="card-head"><h2>What this means</h2></div>
-            <p class="muted">
+            <div class="card-head"><h2 data-i18n="impact.meaning">What this means</h2></div>
+            <p class="muted" data-i18n="impact.body">
               Every year a working laptop stays in service avoids a share of the carbon and mining that a new one would
               require. The cheapest repair is usually also the greenest choice — that is the whole point.
             </p>
@@ -151,24 +154,24 @@
         <section id="panel-prices" class="panel hidden">
           <div class="card">
             <div class="card-head">
-              <h2>Jordanian price book</h2>
-              <span class="muted small">Captured 2026-10-24 · source linked · editable</span>
+              <h2 data-i18n="prices.title">Jordanian price book</h2>
+              <span class="muted small" data-i18n="prices.subtitle">Captured 2026-10-24 · source linked · editable</span>
             </div>
             <div class="table-wrap">
               <table class="prices">
                 <thead>
                   <tr>
-                    <th>Item</th>
-                    <th>Spec</th>
-                    <th>Range</th>
-                    <th>Kind</th>
-                    <th>Source</th>
+                    <th data-i18n="prices.item">Item</th>
+                    <th data-i18n="prices.spec">Spec</th>
+                    <th data-i18n="prices.range">Range</th>
+                    <th data-i18n="prices.kind">Kind</th>
+                    <th data-i18n="prices.source">Source</th>
                   </tr>
                 </thead>
                 <tbody id="priceTable"></tbody>
               </table>
             </div>
-            <p class="muted small">
+            <p class="muted small" data-i18n="prices.note">
               Every row carries a source and a capture date. A price without provenance is a guess, so this app refuses
               to hide where the numbers came from.
             </p>
@@ -178,52 +181,55 @@
         <section id="panel-market" class="panel hidden">
           <div class="card">
             <div class="card-head">
-              <h2>OpenSooq market index</h2>
+              <h2 data-i18n="market.title">OpenSooq market index</h2>
               <span class="muted small" id="marketMeta">Loading…</span>
             </div>
             <p class="muted small" id="marketCompat"></p>
             <div id="marketCats" class="cat-chips"></div>
             <div class="filter-row">
-              <input id="mSearch" placeholder="Search Arabic or English — رام، nvme، بطارية، شاحن" />
+              <input
+                id="mSearch"
+                data-i18n-placeholder="market.search"
+                placeholder="Search Arabic or English — رام، nvme، بطارية، شاحن"
+              />
               <select id="mCategory">
-                <option value="all">All categories</option>
-                <option value="ram">RAM</option>
-                <option value="ssd">SSD</option>
-                <option value="hdd">HDD</option>
-                <option value="battery">Battery</option>
-                <option value="charger">Charger</option>
-                <option value="laptop">Laptop</option>
-                <option value="desktop">Desktop</option>
-                <option value="cooling">Cooling</option>
-                <option value="gpu">Graphics card</option>
+                <option value="all" data-i18n="market.allCategories">All categories</option>
+                <option value="ram" data-i18n="cat.ram">RAM</option>
+                <option value="ssd" data-i18n="cat.ssd">SSD</option>
+                <option value="hdd" data-i18n="cat.hdd">HDD</option>
+                <option value="battery" data-i18n="cat.battery">Battery</option>
+                <option value="charger" data-i18n="cat.charger">Charger</option>
+                <option value="laptop" data-i18n="cat.laptop">Laptop</option>
+                <option value="desktop" data-i18n="cat.desktop">Desktop</option>
+                <option value="cooling" data-i18n="cat.cooling">Cooling</option>
+                <option value="gpu" data-i18n="cat.gpu">Graphics card</option>
               </select>
               <select id="mCondition">
-                <option value="all">Any condition</option>
-                <option value="new">New</option>
-                <option value="used">Used</option>
+                <option value="all" data-i18n="market.anyCondition">Any condition</option>
+                <option value="new" data-i18n="market.new">New</option>
+                <option value="used" data-i18n="market.used">Used</option>
               </select>
-              <input id="mMax" type="number" min="0" placeholder="Max JOD" />
-              <label class="inline"><input type="checkbox" id="mCompatible" checked /> Hide incompatible</label>
-              <label class="inline"><input type="checkbox" id="mPartsOnly" checked /> Hide accessories</label>
-              <label class="inline"><input type="checkbox" id="mOutliers" /> Show outliers</label>
-              <button id="mRefresh" class="ghost">Refresh listings</button>
+              <input id="mMax" type="number" min="0" data-i18n-placeholder="market.max" placeholder="Max JOD" />
+              <label class="inline"><input type="checkbox" id="mCompatible" checked /> <span data-i18n="market.hideIncompatible">Hide incompatible</span></label>
+              <label class="inline"><input type="checkbox" id="mPartsOnly" checked /> <span data-i18n="market.hideAccessories">Hide accessories</span></label>
+              <label class="inline"><input type="checkbox" id="mOutliers" /> <span data-i18n="market.showOutliers">Show outliers</span></label>
+              <button id="mRefresh" class="ghost" data-i18n="market.refresh">Refresh listings</button>
             </div>
-            <p class="muted small">
-              Refresh fetches public OpenSooq category and search pages — fourteen requests, no account and no
-              personal data. The shipped snapshot works fully offline.
+            <p class="muted small" data-i18n="market.refreshNote">
+              Refresh fetches public OpenSooq category and search pages — fourteen requests, no account and no personal
+              data. The shipped snapshot works fully offline.
             </p>
-            <p class="muted small">
-              Photos are not preloaded: click <strong>View photo</strong> to fetch that one image, then it is cached
-              locally. Nothing is read or interpreted from the photo.
+            <p class="muted small" data-i18n="market.photoNote">
+              Photos are not preloaded: click View photo to fetch that one image, then it is cached locally. Nothing is
+              read or interpreted from the photo.
             </p>
-
           </div>
 
           <div id="marketBuckets" class="bucket-grid"></div>
 
           <div class="card">
             <div class="card-head">
-              <h2>Listings</h2>
+              <h2 data-i18n="market.listings">Listings</h2>
               <span class="muted small" id="mCount"></span>
             </div>
             <div id="marketList" class="listing-list"></div>
@@ -233,14 +239,10 @@
         <section id="panel-recycle" class="panel hidden">
           <div class="card">
             <div class="card-head">
-              <h2>Where it actually goes</h2>
-              <span class="muted small" id="recyclerCount">Jordan · contact details from the recyclers</span>
+              <h2 data-i18n="recycle.title">Where it actually goes</h2>
+              <span class="muted small" id="recyclerCount"></span>
             </div>
-            <p class="muted small">
-              Recycling is the last resort, and only useful if the route is real. Some recyclers collect from your
-              location: call the mobile number, give a rough count and send photos. Confirm accepted items, fees and
-              timing when you call.
-            </p>
+            <p class="muted small" data-i18n="recycle.intro"></p>
           </div>
           <div id="recyclerList" class="remedy-list"></div>
         </section>
@@ -248,23 +250,18 @@
         <section id="panel-passport" class="panel hidden">
           <div class="grid-two">
             <div class="card">
-              <div class="card-head"><h2>Second-life passport</h2></div>
-              <p class="muted small">
-                A portable record of what was measured, what was repaired, and what was avoided. Useful when selling a
-                used machine — or when buying one.
-              </p>
-              <button id="passportBtn" class="primary">Generate passport</button>
+              <div class="card-head"><h2 data-i18n="passport.title">Second-life passport</h2></div>
+              <p class="muted small" data-i18n="passport.intro"></p>
+              <button id="passportBtn" class="primary" data-i18n="passport.generate">Generate passport</button>
               <div id="passportBox"></div>
             </div>
 
             <div class="card">
-              <div class="card-head"><h2>Data destruction</h2></div>
-              <p class="muted small">
-                Before a device is resold or recycled, the drive matters more than the hardware. Record the method you
-                used. Fahas stores an attestation locally — it is a record, not a cryptographic proof.
-              </p>
+              <div class="card-head"><h2 data-i18n="passport.destroy">Data destruction</h2></div>
+              <p class="muted small" data-i18n="passport.destroyIntro"></p>
               <div class="form-row">
-                <label>Method
+                <label>
+                  <span data-i18n="passport.method">Method</span>
                   <select id="wipeMethod">
                     <option>ATA Secure Erase</option>
                     <option>NVMe sanitize</option>
@@ -273,11 +270,12 @@
                     <option>Physical destruction</option>
                   </select>
                 </label>
-                <label>Drive
+                <label>
+                  <span data-i18n="passport.drive">Drive</span>
                   <input id="wipeDisk" placeholder="e.g. nvme0n1" />
                 </label>
               </div>
-              <button id="wipeBtn" class="ghost">Record wipe attestation</button>
+              <button id="wipeBtn" class="ghost" data-i18n="passport.record">Record wipe attestation</button>
               <div id="wipeBox" class="wipe-box"></div>
             </div>
           </div>
@@ -300,6 +298,7 @@
       </div>
     </div>
 
+    <script src="i18n.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

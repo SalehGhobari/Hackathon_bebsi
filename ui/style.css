@@ -337,6 +337,22 @@ select:focus, input:focus { outline: 1px solid var(--mint-dim); }
 }
 .toast.error { border-left-color: var(--red); }
 
+/* ---------- RTL ---------- */
+[dir="rtl"] .sidebar { border-right: none; border-left: 1px solid var(--line); }
+[dir="rtl"] .listing-side { text-align: left; align-items: flex-start; }
+[dir="rtl"] .listing-title.rtl { text-align: right; }
+[dir="rtl"] .modal-close { right: auto; left: 10px; }
+[dir="rtl"] table.prices th, [dir="rtl"] table.prices td { text-align: right; }
+[dir="rtl"] .hints, [dir="rtl"] .remedy ul, [dir="rtl"] .conflict-list, [dir="rtl"] .evidence {
+  padding-left: 0; padding-right: 18px;
+}
+[dir="rtl"] .cat-chip { flex-direction: row-reverse; }
+[dir="rtl"] .demo-toggle { flex-direction: row; }
+[dir="rtl"] .topbar { flex-direction: row-reverse; text-align: right; }
+[dir="rtl"] .health-top { flex-direction: row-reverse; }
+[dir="rtl"] .action-row { flex-direction: row-reverse; }
+[dir="rtl"] .remedy .foot { flex-direction: row-reverse; }
+
 @media (max-width: 980px) {
   .app { grid-template-columns: 1fr; }
   .sidebar { flex-direction: row; flex-wrap: wrap; align-items: center; border-right: none; border-bottom: 1px solid var(--line); }

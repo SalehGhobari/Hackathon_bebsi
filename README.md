@@ -56,6 +56,7 @@ costs in Amman, or what happens to the old one. Fahas is built around the decisi
 | Impact ledger | Working (local JSON) |
 | OpenSooq market index | Working — 338 real listings, Arabic parsing, spec buckets, compatibility filter |
 | Listing photo viewer | Working — on-demand fetch, local cache, full-size modal |
+| Arabic mode (RTL) | Working for the UI shell, market, recycling, prices and passport; scan prose still English |
 | Second-life passport + QR | Working (signed hash, offline verification) |
 | Wipe attestation | Working — records the method as an **operator attestation**, not proof of erasure |
 | Demo mode | Working — simulates wear so a healthy laptop can demo the full advisor |
@@ -287,6 +288,29 @@ disk. The diagnostic is flagged `demo: true`, the UI shows a banner, and the val
 - Prices are seed ranges and will be stale; the source/date are shown next to every number.
 - No live component shopping links (deliberate: no network).
 - The passport verifies integrity, not truthfulness — it proves the record was not altered after issue.
+
+## Arabic mode (العربية)
+
+![Arabic mode](docs/arabic-mode.png)
+
+Toggle at the bottom of the sidebar (`العربية` / `English`). The choice is stored in `localStorage`, and the app
+switches `lang="ar"` with a full **RTL** layout — sidebar on the right, mirrored lists and table alignment.
+
+Translated so far:
+
+- navigation, buttons, empty state, demo banner, privacy line
+- **Market**: search placeholder, filters, category chips, compatibility badges and reasons, counts, hidden-row
+  explanations, bucket names, condition and confidence words
+- **Recycle**: partner labels, phone types, pickup wording, source/contact links
+- **Price book**: table headers, kind labels (retail / used / policy / estimate)
+- **Passport**: buttons, wipe panel, status badges
+- health item labels (battery, storage, thermals, memory) and severity chips
+- toasts
+
+**Still English:** the technical prose produced by the scan — health summaries, fault titles and details, remedy
+titles, descriptions, steps and warnings. The app states this under the tabs in Arabic mode rather than pretending
+otherwise. Localising it needs a `lang` argument flowing into `lib/health.ts` and `lib/advisor.ts`, which is the next
+step if full Arabic is required.
 
 ## Contributing (teammates)
 
