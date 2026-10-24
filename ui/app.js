@@ -33,7 +33,7 @@ const TAB_META = {
   replace: ["Replace", "Stash what you want to replace, then find compatible parts in the OpenSooq index."],
   recycle: ["Recycle", "Keep a manifest of e-waste, attach photos, and hand it to a recycler."],
   impact: ["Impact", "What your stash keeps out of landfill."],
-  more: ["More", "Price book, recycling partners and the second-life passport."],
+  more: ["Info", "Price book, recycling partners and the second-life passport."],
 };
 
 function esc(value) {
@@ -1461,6 +1461,8 @@ function renderLedger() {
 }
 
 function renderPrices() {
+  const meta = $("#priceMeta");
+  if (meta) meta.textContent = t("prices.rows", { n: state.prices.length });
   $("#priceTable").innerHTML = state.prices
     .map((p) => {
       const unit = p.unit && p.unit !== "each" ? ` / ${esc(p.unit)}` : "";
@@ -1471,7 +1473,7 @@ function renderPrices() {
         : esc(label);
       return `
       <tr>
-        <td>${esc(p.item)}</td>
+        <td><strong>${esc(p.item)}</strong><div class="muted small">${esc(p.category)}</div></td>
         <td>${esc(p.spec)}</td>
         <td>${money(p.low) === money(p.high) ? `${money(p.low)} ${esc(p.currency)}` : `${money(p.low)}–${money(p.high)} ${esc(p.currency)}`}${unit}</td>
         <td><span class="badge ${kindClass}">${esc(t("kind." + p.kind))}</span></td>

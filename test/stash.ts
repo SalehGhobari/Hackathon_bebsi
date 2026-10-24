@@ -8,6 +8,17 @@ import { renderRecycleHtml } from "../electron/recycle-pdf";
 async function main() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fahes-stash-test-"));
   const store = new Store(dir);
+  assert.equal(store.prices().length, 20, "a fresh store should seed the price book");
+
+  // Simulate a store written by an older build with the current seed version but no prices.
+  const legacyDir = fs.mkdtempSync(path.join(os.tmpdir(), "fahes-legacy-test-"));
+  fs.writeFileSync(
+    path.join(legacyDir, "fahes-data.json"),
+    JSON.stringify({ devices: [], diagnostics: [], actions: [], prices: [], wipes: [], stash: [], seedVersion: 4 }),
+  );
+  const legacy = new Store(legacyDir);
+  assert.equal(legacy.prices().length, 20, "an empty price book should be repaired");
+
   const scan = await store.scan({ demo: true });
   const candidates = store.candidates(scan.device.id);
   assert.ok(candidates.length > 0, "a demo scan should offer stash candidates");

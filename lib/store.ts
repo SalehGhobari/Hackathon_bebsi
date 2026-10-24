@@ -34,7 +34,7 @@ import type {
   WipeRecord,
 } from "./types";
 
-const SEED_VERSION = 3;
+const SEED_VERSION = 4;
 
 type Data = {
   devices: Device[];
@@ -53,7 +53,7 @@ const EMPTY: Data = {
   prices: [],
   wipes: [],
   stash: [],
-  seedVersion: SEED_VERSION,
+  seedVersion: 0,
 };
 
 export type DeviceView = {
@@ -216,7 +216,8 @@ export class Store {
    * replace the price book so stale seeded rows never masquerade as current quotes.
    */
   private syncSeedData() {
-    if (this.data.seedVersion === SEED_VERSION) return;
+    // Also reseed if a previous build wrote the current version with an empty price book.
+    if (this.data.seedVersion === SEED_VERSION && this.data.prices.length > 0) return;
     this.data.prices = structuredClone(seedPrices as PriceEntry[]);
     this.data.seedVersion = SEED_VERSION;
   }

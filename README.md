@@ -127,7 +127,7 @@ window, and `icon.ico` is used by the Windows installer. The in-app copy is `ui/
 | **Replace** | the replacement stash + the OpenSooq search, filters and compatibility badges |
 | **Recycle** | the recycle stash, per-item photos, recycler choice, manifest PDF and email handover |
 | **Impact** | active stash counts, diverted kilograms, CO₂e avoided and recovered materials |
-| **More** | price book, verified recyclers, second-life passport and data destruction |
+| **Info** | price book, verified recyclers, second-life passport and data destruction |
 
 Secondary controls sit behind disclosure folds, so the first screen answers one question at a time.
 
@@ -379,7 +379,7 @@ and cooling; a USB or LAN scan offers the external device. Each row carries two 
 | **Replace** | the item enters the replacement stash, where you can search compatible parts and log the chosen listing |
 
 The recycle manifest includes the **data-destruction warning** and the exact wipe command for each detected drive
-(`nvme sanitize`, `hdparm security-erase`, `shred`). A wipe attestation can be recorded in More → Second-life
+(`nvme sanitize`, `hdparm security-erase`, `shred`). A wipe attestation can be recorded in Info → Second-life
 passport. Physical destruction is flagged for failing drives.
 
 Market matches exclude price outliers, accessories, wanted/barter ads ("مطلوب", "للبدل") and anything incompatible

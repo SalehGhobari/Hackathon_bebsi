@@ -325,7 +325,7 @@
           <div class="card">
             <div class="card-head">
               <h2 data-i18n="prices.title">Jordanian price book</h2>
-              <span class="muted small" data-i18n="prices.subtitle">Captured 2026-10-24 · source linked</span>
+              <span class="muted small"><span data-i18n="prices.subtitle">Captured 2026-10-24 · source linked</span> · <span id="priceMeta"></span></span>
             </div>
             <div class="table-wrap">
               <table class="prices">
@@ -341,6 +341,9 @@
                 <tbody id="priceTable"></tbody>
               </table>
             </div>
+            <p class="muted small" data-i18n="prices.note">
+              Every row carries a source and a capture date. A price without provenance is a guess.
+            </p>
           </div>
 
           <div class="card">
