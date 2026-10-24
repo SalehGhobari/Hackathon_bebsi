@@ -32,6 +32,16 @@ function norm(v: string | null | undefined): string {
 export function checkCompatibility(listing: ParsedListing, req: DeviceRequirements | null): CompatResult {
   if (!req) return { status: "check", reasons: ["No device selected."] };
 
+  if (listing.category === "laptop" || listing.category === "desktop") {
+    return {
+      status: "check",
+      reasons: [
+        "This is a whole machine, not a component.",
+        "Compare its CPU, RAM and storage instead of treating it as an upgrade.",
+      ],
+    };
+  }
+
   if (listing.category === "ram") {
     const reasons: string[] = [];
     let mismatch = false;

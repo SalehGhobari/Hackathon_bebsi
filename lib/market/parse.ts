@@ -10,7 +10,7 @@ type Rule = { category: MarketCategory; patterns: RegExp[] };
 const RULES: Rule[] = [
   { category: "battery", patterns: [/بطار/, /\bbattery\b/, /\bبطاريات\b/] },
   { category: "charger", patterns: [/شاحن/, /شواحن/, /محول/, /\bcharger\b/, /\badapter\b/, /قواعد شحن/] },
-  { category: "cooling", patterns: [/مروح/, /مراوح/, /\bfan\b/, /\bfans\b/, /تبريد/, /\bcooling\b/, /معجون حراري/, /ثيرمال/, /thermal paste/] },
+  { category: "cooling", patterns: [/مروح/, /مراوح/, /\bmبرد\b/, /\bfan\b/, /\bfans\b/, /تبريد/, /\bcooling\b/, /معجون حراري/, /ثيرمال/, /thermal paste/, /coreliquid/] },
   { category: "gpu", patterns: [/كرت شاش/, /كرت شاشه/, /جرافيك/, /\bgraphic/, /\brtx\b/, /\bgtx\b/, /\brx\s?\d/, /radeon/, /geforce/] },
   { category: "cpu", patterns: [/معالج/, /بروسيسور/, /\bprocessor\b/, /\bryzen\b/, /\bcore\s?i[3579]\b/, /\bi[3579][- ]?\d{4,5}\b/] },
   { category: "motherboard", patterns: [/مذربورد/, /لوحه ام/, /لوحة ام/, /\bmotherboard\b/, /\bb[456]\d0\b/, /\bz\d{3}\b/, /\bh\d{3}\b/] },
@@ -37,23 +37,34 @@ const ARABIC_BRANDS: Record<string, string> = {
   "توشيبا": "Toshiba",
 };
 
+/** Words that mean "this is a component", even when a laptop is mentioned. */
+const PART_PREFIX = /^(رام|رامات|ذاكره|شاحن|شواحن|محول|ادابتر|بطاري|هارد|هاردسك|ssd|nvme|مروح|مبرد|معجون|شاشه|كيبورد|ماوس|لوحه|مذربورد|معالج|بروسيسور|كابل|كفر|شنطه|حقيبه)/;
+
 function classify(text: string): MarketCategory {
   // Readers, docks and hubs mention "SSD/NVMe" but are not drives.
   if (/reader|قارئ|dock|قاعده|hub\b/.test(text) && !/شاحن|laptop/.test(text)) return "other";
 
-  // Whole machines mention RAM/SSD as specifications ("laptop i5, 8GB RAM + 256GB SSD").
-  // Detect those before the part rules, unless the listing is clearly about a part.
-  const startsWithPart = /^(رام|رامات|شاحن|شواحن|بطاري|هارد|هاردسك|ssd|nvme|مروح|معجون)/.test(text);
-  const ramForLaptop = /(رام|رامات)\s*(لابتوب|لاب توب)|(لابتوب|لاب توب)\s*(رام|رامات)|(ram|memory)\s*(for|ل)/.test(text);
-  const isPart = startsWithPart || ramForLaptop;
-  const deviceModel = /\b(i[3579][- ]?\d{3,5}|ryzen\s?[3579]|celeron|pentium|core\s?ultra|athlon|xeon)\b/.test(text);
-  const laptopish = /لابتوب|لاب توب|laptop|نوت بوك|notebook|macbook/.test(text);
-  const desktopish = /كمبيوتر|بي سي|\bpc\b|مكتبي|ديسكتوب|mini pc|all in one|اوبتكليكس|optiplex/.test(text);
+  // Screens are parts, not machines ("شاشة لابتوب"). Careful: "بكرتين شاشه"
+  // means two GPUs inside a laptop, not a screen for sale.
+  const screenPart =
+    (/^(شاشه|screen|monitor|display)/.test(text) ||
+      /(شاشه|screen|monitor|display)\s*(لابتوب|laptop|كمبيوتر|computer|بوصه)/.test(text)) &&
+    !/كرت|graphic/.test(text);
+  if (screenPart) return "other";
 
-  if (/قطع/.test(text) && !deviceModel) return "other";
-  if (!isPart && (laptopish || desktopish) && (deviceModel || /ssd|nvme|هارد|hdd/.test(text))) {
-    return laptopish ? "laptop" : "desktop";
-  }
+  // Job lots: "قطع كمبيوتر ram ssd nvme" is not a laptop.
+  if (/^قطع|قطع كمبيوتر|قطع لابتوب/.test(text)) return "other";
+
+  const ramForLaptop = /(رام|رامات)\s*(لابتوب|لاب توب)|(لابتوب|لاب توب)\s*(رام|رامات)|(ram|memory)\s*(for|ل)/.test(text);
+  const isPart = PART_PREFIX.test(text) || ramForLaptop;
+
+  const laptopish = /لابتوب|لاب توب|laptop|نوت بوك|notebook|macbook/.test(text);
+  const desktopish = /كمبيوتر|كومبيوتر|بي سي|\bpc\b|مكتبي|ديسكتوب|mini pc|all in one|اوبتكليكس|optiplex/.test(text);
+
+  // A whole machine mentions DDR5/RTX/SSD as specifications. If it leads with
+  // "laptop"/"computer" it is a device, not the component named inside it.
+  if (!isPart && laptopish) return "laptop";
+  if (!isPart && desktopish) return "desktop";
 
   for (const rule of RULES) {
     if (rule.patterns.some((p) => p.test(text))) return rule.category;
@@ -234,11 +245,29 @@ export function flagOutliers(listings: ParsedListing[]): ParsedListing[] {
     return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
   };
 
+  const percentile = (values: number[], p: number) => {
+    const s = [...values].sort((a, b) => a - b);
+    const pos = (s.length - 1) * p;
+    const base = Math.floor(pos);
+    const rest = pos - base;
+    const next = s[base + 1] ?? s[base];
+    return s[base] + rest * (next - s[base]);
+  };
+
   for (const group of groups.values()) {
-    if (group.length < 3) continue;
-    const med = median(group.map((g) => g.priceJod));
+    // Whole machines legitimately span 100–1600 JOD, so a 3x-median rule
+    // wrongly flags high-end laptops. Use IQR fences instead, which adapt to
+    // the spread of the group.
+    if (group.length < 4) continue;
+    const prices = group.map((g) => g.priceJod);
+    const q1 = percentile(prices, 0.25);
+    const q3 = percentile(prices, 0.75);
+    const iqr = q3 - q1;
+    const highFence = q3 + 3 * iqr;
+    const lowFence = Math.max(0.5, q1 - 3 * iqr);
+
     for (const item of group) {
-      if (item.priceJod < med / 4 || item.priceJod > med * 3) item.outlier = true;
+      if (item.priceJod > highFence || item.priceJod < lowFence) item.outlier = true;
       if (item.priceJod <= 0.5 && !["battery", "charger"].includes(item.category)) item.outlier = true;
     }
   }

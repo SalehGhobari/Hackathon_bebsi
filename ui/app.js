@@ -115,6 +115,13 @@ function bind() {
     if (btn) openPhoto(btn.dataset.viewPhoto);
   });
 
+  $("#marketCats").addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-cat]");
+    if (!chip) return;
+    $("#mCategory").value = chip.dataset.cat;
+    renderMarket();
+  });
+
   $("#photoClose").addEventListener("click", closePhoto);
   $("#photoModal").addEventListener("click", (event) => {
     if (event.target === $("#photoModal")) closePhoto();
@@ -725,15 +732,35 @@ function renderMarket() {
 
   const q = normText($("#mSearch").value);
   const category = $("#mCategory").value;
+
+  const CATEGORY_LABELS = {
+    ram: "RAM", ssd: "SSD", hdd: "HDD", battery: "Battery", charger: "Charger",
+    cooling: "Cooling", gpu: "Graphics card", cpu: "CPU", motherboard: "Motherboard",
+    laptop: "Laptop", desktop: "Desktop", keyboard: "Keyboard / mouse", other: "Other",
+  };
+  const counts = new Map();
+  for (const listing of market.listings) {
+    counts.set(listing.category, (counts.get(listing.category) ?? 0) + 1);
+  }
+  const ordered = ["ram", "ssd", "hdd", "battery", "charger", "cooling", "gpu", "laptop", "desktop"];
+  const chips = [
+    `<button class="cat-chip ${category === "all" ? "active" : ""}" data-cat="all">All <span class="n">${market.count}</span></button>`,
+    ...ordered
+      .filter((key) => counts.get(key))
+      .map(
+        (key) =>
+          `<button class="cat-chip ${category === key ? "active" : ""}" data-cat="${key}">${CATEGORY_LABELS[key] ?? key} <span class="n">${counts.get(key)}</span></button>`,
+      ),
+  ];
+  $("#marketCats").innerHTML = chips.join("");
   const condition = $("#mCondition").value;
   const max = Number($("#mMax").value) || Infinity;
   const hideIncompatible = $("#mCompatible").checked;
   const partsOnly = $("#mPartsOnly").checked;
   const showOutliers = $("#mOutliers").checked;
 
-  const matching = market.listings
+  const matchingAll = market.listings
     .filter((l) => {
-      if (!showOutliers && l.outlier) return false;
       if (partsOnly) {
         if (["other", "keyboard"].includes(l.category)) return false;
         if (["small", "converter", "external"].includes(l.variant ?? "")) return false;
@@ -753,29 +780,36 @@ function renderMarket() {
       );
     });
 
+  const hiddenOutliers = showOutliers ? 0 : matchingAll.filter((l) => l.outlier).length;
+  const withoutOutliers = showOutliers ? matchingAll : matchingAll.filter((l) => !l.outlier);
   const hiddenIncompatible = hideIncompatible
-    ? matching.filter((l) => l.compatibility.status === "incompatible").length
+    ? withoutOutliers.filter((l) => l.compatibility.status === "incompatible").length
     : 0;
   const filtered = hideIncompatible
-    ? matching.filter((l) => l.compatibility.status !== "incompatible")
-    : matching;
+    ? withoutOutliers.filter((l) => l.compatibility.status !== "incompatible")
+    : withoutOutliers;
 
   const buckets = market.buckets.filter((b) => category === "all" || b.category === category).slice(0, 8);
   $("#marketBuckets").innerHTML = buckets.length
     ? buckets.map(bucketCard).join("")
     : '<p class="muted small">No price buckets for this filter yet.</p>';
 
-  $("#mCount").textContent = hiddenIncompatible
-    ? `${filtered.length} shown · ${hiddenIncompatible} hidden as incompatible`
+  const hiddenNotes = [
+    hiddenOutliers ? `${hiddenOutliers} hidden as price outliers` : "",
+    hiddenIncompatible ? `${hiddenIncompatible} hidden as incompatible` : "",
+  ].filter(Boolean);
+  $("#mCount").textContent = hiddenNotes.length
+    ? `${filtered.length} shown · ${hiddenNotes.join(" · ")}`
     : `${filtered.length} shown`;
+
+  const emptyHints = [
+    hiddenOutliers ? `${hiddenOutliers} listing(s) are hidden as price outliers — tick “Show outliers”.` : "",
+    hiddenIncompatible ? `${hiddenIncompatible} listing(s) are incompatible with this machine — untick “Hide incompatible”.` : "",
+  ].filter(Boolean);
 
   $("#marketList").innerHTML = filtered.length
     ? filtered.slice(0, 150).map(listingRow).join("")
-    : `<p class="muted small">${
-        hiddenIncompatible
-          ? `No compatible listings match. ${hiddenIncompatible} matching listing(s) are incompatible with this machine — untick “Hide incompatible” to see them.`
-          : "No listings match these filters."
-      }</p>`;
+    : `<p class="muted small">No listings match these filters.${emptyHints.length ? " " + emptyHints.join(" ") : ""}</p>`;
 }
 
 async function openPhoto(listingId) {

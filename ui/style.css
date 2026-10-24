@@ -226,6 +226,17 @@ table.prices a:hover, .remedy a:hover { text-decoration: underline; }
 table.prices tr:last-child td { border-bottom: none; }
 
 /* ---------- market ---------- */
+.cat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
+.cat-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+  border-radius: 999px; padding: 4px 10px; font-size: 11.5px; cursor: pointer;
+}
+.cat-chip:hover { color: var(--text); border-color: #2f4655; }
+.cat-chip.active { color: var(--mint); border-color: #245c45; background: #10231b; }
+.cat-chip .n { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cat-chip.active .n { color: var(--mint); }
+
 .filter-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
 .filter-row select { flex: 0 1 150px; min-width: 132px; }
 #mSearch { flex: 1 1 280px; min-width: 220px; }
