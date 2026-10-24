@@ -1,9 +1,9 @@
 # sync.ps1 — سحب تعديلات GitHub (Linux) + بناء + فحص
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 Set-Location $PSScriptRoot
 
 Write-Host "=== git pull ===" -ForegroundColor Cyan
-git pull origin main
+git pull origin main 2>&1 | Out-Host
 
 Write-Host "=== build:main ===" -ForegroundColor Cyan
 npm run build:main
