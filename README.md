@@ -49,7 +49,7 @@ costs in Amman, or what happens to the old one. Fahas is built around the decisi
 | Area | State |
 |---|---|
 | Linux detection (Arch, Mint, generic) | Working — sysfs battery, `lsblk`/sysfs disks, `sensors`/hwmon/thermal zones, DMI |
-| Windows detection | Implemented via PowerShell/CIM + storage reliability counters. Untested on real hardware — needs a Windows laptop to verify |
+| Windows detection | Working — PowerShell/CIM + storage reliability counters. Verified on a Dell Latitude 5511 (Windows 11): battery from `root\wmi`, NVMe bus identified behind Intel RST, ACPI thermal zones |
 | Health scoring + findings | Working |
 | Remedy engine (cost/year, CO₂e, materials) | Working |
 | Jordanian price book | Real, dated prices from GTS (retail) and OpenSooq (used, asking), captured 2026-10-24. Labour remains an estimate |
