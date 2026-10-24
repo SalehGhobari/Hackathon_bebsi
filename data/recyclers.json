@@ -4,9 +4,19 @@
     "name": "E-Tafkeek — TAFKEEK e-Waste Recycling",
     "city": "Amman",
     "address": "Mecca Street, Al Husseini complex 152, 4th floor, office 402",
-    "phones": ["+962 6 5511533", "+962 6 5511532", "+962 777194940"],
+    "phones": [
+      { "number": "+962 777194940", "type": "mobile" },
+      { "number": "+962 6 5511533", "type": "landline" },
+      { "number": "+962 6 5511532", "type": "landline" }
+    ],
     "email": "sudki2023@e-tafkeek.com",
     "hours": "Saturday – Thursday, 9:00 AM – 4:00 PM",
+    "pickup": true,
+    "process": [
+      "Call the mobile number and tell them roughly how many devices you have.",
+      "Send pictures of the devices so they can estimate the load.",
+      "They send a car to your location to collect the components."
+    ],
     "accepts": [
       "Mobile phones",
       "TVs",
@@ -16,6 +26,7 @@
       "Other electrical and electronic waste"
     ],
     "services": [
+      "Free pickup by car after a call and photos (confirm timing when you call)",
       "Refurbished computers and usable parts (hard drives, optical drives, RAM)",
       "Sorted materials supplied to smelters",
       "Non-recycled boards (motherboards, PC cards, PCB) for export",
@@ -23,6 +34,6 @@
     ],
     "sourceUrl": "https://e-tafkeek.com/",
     "contactUrl": "https://e-tafkeek.com/contactus/",
-    "notes": "Call before travelling. Ask three things: what they will accept, whether they charge the MOENV disposal fee at your quantity, and what happens to data-bearing drives. They also resell usable parts, so a working SSD or RAM stick may have value."
+    "notes": "You do not need to travel to the office: call the mobile, describe the rough count, and send photos — they arrange a car to your location. The two +962 6 numbers are landlines for the office. Ask what happens to data-bearing drives before handing anything over."
   }
 ]

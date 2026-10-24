@@ -248,14 +248,18 @@ export type MarketResponse = {
   requirements: DeviceRequirements | null;
 };
 
+export type RecyclerPhone = { number: string; type: "mobile" | "landline" };
+
 export type Recycler = {
   id: string;
   name: string;
   city: string;
   address: string;
-  phones: string[];
+  phones: RecyclerPhone[];
   email: string;
   hours: string;
+  pickup?: boolean;
+  process?: string[];
   accepts: string[];
   services: string[];
   sourceUrl: string;

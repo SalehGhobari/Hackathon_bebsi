@@ -538,9 +538,29 @@ function renderRecyclers() {
         </div>
         <p class="desc">${esc(r.address)}<br>${esc(r.hours)}</p>
         <div class="metrics" style="grid-template-columns:1fr 1fr">
-          <div class="metric"><div class="k">Phone</div><div class="v" style="font-size:12.5px">${r.phones.map((p) => esc(p)).join("<br>")}</div></div>
+          <div class="metric">
+            <div class="k">Phone</div>
+            <div class="v" style="font-size:12.5px;line-height:1.8">
+              ${r.phones
+                .map(
+                  (p) =>
+                    `${esc(p.number)} <span class="badge ${p.type === "mobile" ? "mint" : ""}" style="font-size:9.5px;padding:1px 6px">${p.type === "mobile" ? "mobile" : "landline"}</span>`,
+                )
+                .join("<br>")}
+            </div>
+          </div>
           <div class="metric"><div class="k">Email</div><div class="v" style="font-size:12.5px">${esc(r.email)}</div></div>
         </div>
+        ${
+          r.process && r.process.length
+            ? `<div class="card" style="background:var(--panel-2);margin:12px 0;padding:12px 14px">
+                 <div class="k muted small" style="margin-bottom:6px">Pickup: how it works${r.pickup ? " · car to your location" : ""}</div>
+                 <ol class="hints" style="padding-left:18px;margin:0">
+                   ${r.process.map((step) => `<li>${esc(step)}</li>`).join("")}
+                 </ol>
+               </div>`
+            : ""
+        }
         <div class="k muted small" style="margin-bottom:6px">Accepts</div>
         <div class="chips">${r.accepts.map((a) => `<span class="chip">${esc(a)}</span>`).join("")}</div>
         <details>

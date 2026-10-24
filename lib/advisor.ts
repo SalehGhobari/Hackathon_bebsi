@@ -338,7 +338,7 @@ export function advise(d: AdvisorInput, health: HealthReport, faults: Fault[]): 
       steps: [
         "Back up your data, then wipe the drive and keep the certificate.",
         "Remove and separately dispose of the battery.",
-        "Take the device to an e-waste collection point; ask what happens to the data-bearing parts.",
+        "Call E-Tafkeek on the mobile number with a rough count and send photos — they arrange a car to your location.",
       ],
     }),
   );

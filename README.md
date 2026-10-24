@@ -232,17 +232,20 @@ market census. The n value is shown everywhere so nobody mistakes a 3-listing me
 **E-Tafkeek — TAFKEEK e-Waste Recycling** (Amman)
 
 - Address: Mecca Street, Al Husseini complex 152, 4th floor, office 402
-- Phones: +962 6 5511533 · +962 6 5511532 · +962 777194940
+- **Mobile: +962 777194940** — for pickup
+- Landlines: +962 6 5511533 · +962 6 5511532
 - Email: sudki2023@e-tafkeek.com
 - Hours: Saturday–Thursday, 9:00 AM – 4:00 PM
+- **Pickup:** call the mobile, give a rough count of your devices, send pictures — they send a car to your location
+  to collect the components
 - Accepts: phones, TVs, computers/laptops, motherboards and PC cards, PCB boards, communications devices, other
   electrical waste
 - Also: resells refurbished machines and usable parts (HDD, optical drives, RAM), supplies sorted material to
   smelters, exports non-recycled boards, and supports the MOENV **100 JOD/ton** legal-disposal policy
 - Source: <https://e-tafkeek.com/> · contact: <https://e-tafkeek.com/contactus/>
 
-The app tells the user to call first and ask three things: what they accept, whether the MOENV fee applies at their
-quantity, and what happens to data-bearing drives. The wipe attestation exists for exactly that conversation.
+The app tells the user to call the mobile, describe the count, send photos, and ask what happens to data-bearing
+drives before handing anything over. The wipe attestation exists for exactly that conversation.
 
 ## Demo mode
 
