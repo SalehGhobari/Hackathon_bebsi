@@ -6,9 +6,23 @@ diverted and CO₂e avoided.
 
 No account. No server. No network calls. Everything is stored on the machine it runs on.
 
-```
+```bash
+# 1. Go into the project directory first — npm must see package.json.
+cd Hackathon_bebsi
+
+# 2. Install and run (Linux)
 npm install
 npm run dev
+```
+
+Or use the launcher, which always runs from the repository regardless of your shell's directory:
+
+```bash
+./run.sh                 # Linux
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run.ps1   # Windows
 ```
 
 ---
