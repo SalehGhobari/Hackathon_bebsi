@@ -182,11 +182,11 @@ function registerIpc() {
     const { recyclerId } = payload as { recyclerId: string };
     const recycler = store.recyclers().find((r) => r.id === recyclerId);
     if (!recycler) throw new Error("Choose a recycling partner first.");
-    const subject = "Fahes e-waste recycling manifest";
+    const subject = "E-waste recycling manifest";
     const body = [
       `Hello ${recycler.name},`,
       "",
-      "I have prepared a recycling manifest in Fahes. Please find the PDF attached to this email.",
+      "I have prepared a recycling manifest. Please find the PDF attached to this email.",
       "It lists the items, quantities and photos, and my contact details for pickup.",
       "",
       "Thank you.",
