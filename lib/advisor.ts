@@ -322,7 +322,7 @@ export function advise(d: AdvisorInput, health: HealthReport, faults: Fault[]): 
       action: "recycle",
       hierarchy: 4,
       title: "Recycle it properly",
-      description: `Last resort, and only after the repairs above have been ruled out. E-Tafkeek in Amman accepts computers, boards and batteries, and also buys usable parts. The MOENV reference rate is 100 JOD/ton${disposalFee !== null ? ` — about ${disposalFee} JOD for a ${mass} kg device` : ""}; confirm what applies to a household drop-off.`,
+      description: `Last resort, and only after the repairs above have been ruled out. Amman recyclers such as E-Tafkeek and Al Nasser Group accept computers, boards and batteries; E-Tafkeek also buys usable parts, and both offer collection. The MOENV reference rate is 100 JOD/ton${disposalFee !== null ? ` — about ${disposalFee} JOD for a ${mass} kg device` : ""}; confirm what applies to a household pickup.`,
       cls,
       part: null,
       years: 0,
@@ -338,7 +338,8 @@ export function advise(d: AdvisorInput, health: HealthReport, faults: Fault[]): 
       steps: [
         "Back up your data, then wipe the drive and keep the certificate.",
         "Remove and separately dispose of the battery.",
-        "Call E-Tafkeek on the mobile number with a rough count and send photos — they arrange a car to your location.",
+        "Call a recycler with a rough count and photos — both listed partners arrange collection in Amman.",
+        "Ask for data destruction in writing if the drive is handed over un-wiped.",
       ],
     }),
   );

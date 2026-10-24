@@ -522,6 +522,8 @@ function renderPrices() {
 function renderRecyclers() {
   const list = $("#recyclerList");
   if (!list) return;
+  const count = $("#recyclerCount");
+  if (count) count.textContent = `Jordan · ${state.recyclers.length} recycler${state.recyclers.length === 1 ? "" : "s"} · contact details from their sites`;
   list.innerHTML = state.recyclers
     .map(
       (r) => `
@@ -554,7 +556,7 @@ function renderRecyclers() {
         ${
           r.process && r.process.length
             ? `<div class="card" style="background:var(--panel-2);margin:12px 0;padding:12px 14px">
-                 <div class="k muted small" style="margin-bottom:6px">Pickup: how it works${r.pickup ? " · car to your location" : ""}</div>
+                 <div class="k muted small" style="margin-bottom:6px">Pickup: how it works${r.pickup ? " · collection available" : ""}</div>
                  <ol class="hints" style="padding-left:18px;margin:0">
                    ${r.process.map((step) => `<li>${esc(step)}</li>`).join("")}
                  </ol>

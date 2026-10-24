@@ -244,8 +244,23 @@ market census. The n value is shown everywhere so nobody mistakes a 3-listing me
   smelters, exports non-recycled boards, and supports the MOENV **100 JOD/ton** legal-disposal policy
 - Source: <https://e-tafkeek.com/> · contact: <https://e-tafkeek.com/contactus/>
 
-The app tells the user to call the mobile, describe the count, send photos, and ask what happens to data-bearing
-drives before handing anything over. The wipe attestation exists for exactly that conversation.
+**Al Nasser Group — E-Waste Management** (Amman)
+
+- Address: 7th Circle, Al Husseini Complex, 5th floor, office 512
+- Phone: +962 6 5833 166 (landline)
+- Email: Sales2@nassergroup.com.jo
+- Hours: Sunday–Thursday, 9:00 AM – 4:00 PM
+- Collection: businesses, households, schools and government agencies, with specialised vehicles
+- Data destruction: wiping **and physical destruction** of hard drives, SSDs and memory cards (ask explicitly)
+- Also: component recovery (metals, plastics, boards), recycling, refurbishment (reusable devices resold or donated),
+  environmental compliance, awareness programmes
+- Source: <https://nassergroup.com.jo/e-waste-management/> · contact: <https://nassergroup.com.jo/contact-us/>
+- Map: <https://maps.app.goo.gl/Fvz8bBdvUZLFJYUz9>
+
+Both partners are listed in the **Recycle** tab. The app tells the user to call, describe the count, send photos, and
+ask what happens to data-bearing drives before handing anything over. The wipe attestation exists for exactly that
+conversation — and Al Nasser Group is the partner that explicitly offers physical destruction, which is the right
+answer when wiping is not enough.
 
 ## Demo mode
 

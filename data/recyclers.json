@@ -35,5 +35,40 @@
     "sourceUrl": "https://e-tafkeek.com/",
     "contactUrl": "https://e-tafkeek.com/contactus/",
     "notes": "You do not need to travel to the office: call the mobile, describe the rough count, and send photos — they arrange a car to your location. The two +962 6 numbers are landlines for the office. Ask what happens to data-bearing drives before handing anything over."
+  },
+  {
+    "id": "nasser-group",
+    "name": "Al Nasser Group — E-Waste Management",
+    "city": "Amman",
+    "address": "7th Circle, Al Husseini Complex, 5th floor, office 512",
+    "phones": [{ "number": "+962 6 5833 166", "type": "landline" }],
+    "email": "Sales2@nassergroup.com.jo",
+    "hours": "Sunday – Thursday, 9:00 AM – 4:00 PM",
+    "pickup": true,
+    "process": [
+      "Call or request a quote — they collect from businesses, households, schools and government agencies.",
+      "They transport the e-waste with specialised vehicles to their processing facility.",
+      "Ask explicitly for data destruction: wiping or physical destruction of HDD, SSD and memory cards.",
+      "Components are recovered; the rest is recycled, and reusable devices may be refurbished and resold or donated."
+    ],
+    "accepts": [
+      "Computers, laptops and servers",
+      "Hard drives, SSDs and memory cards",
+      "Circuit boards and electronic components",
+      "Household and office electronics",
+      "Metals, plastics and glass (after dismantling)"
+    ],
+    "services": [
+      "Collection and transportation from businesses, households, schools and government agencies",
+      "Secure data destruction: wiping and physical destruction of hard drives, SSDs and memory cards",
+      "Component recovery: metals, plastics and circuit boards",
+      "Recycling and refurbishment; reusable devices resold or donated for reuse",
+      "Environmental compliance with local and international regulations",
+      "Community awareness and outreach programmes",
+      "Quotes via their get-a-quote page"
+    ],
+    "sourceUrl": "https://nassergroup.com.jo/e-waste-management/",
+    "contactUrl": "https://nassergroup.com.jo/contact-us/",
+    "notes": "Only a landline is published on the site (+962 6 5833 166). Ask whether they collect a single household device or only bulk loads, and request data destruction explicitly — their site offers wiping and physical destruction, which pairs with Fahas's wipe attestation. Sales address listed on the site: Sales2@nassergroup.com.jo. Map: https://maps.app.goo.gl/Fvz8bBdvUZLFJYUz9"
   }
 ]
