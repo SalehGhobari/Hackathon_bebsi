@@ -233,6 +233,19 @@ search pages, each with its URL, price, city and condition. The app works fully 
 outliers. Listings sort compatibility-first. Each row shows its normalised tags, confidence, city, and a "why" panel.
 Aggregates show median / P25–P75 / n per spec bucket.
 
+### Smart search (optional local model)
+
+Type a sentence and press Enter (or **Ask**): *"ddr4 16gb laptop ram under 100"*.
+
+- If a small Ollama model is installed (`qwen3:4b`, `llama3.2:3b`, `qwen2.5:3b`, `gemma3:4b`), it converts the sentence
+  into filters: category, DDR generation, form factor, minimum capacity, max price, condition, keywords.
+- **No model required.** A deterministic parser handles the same query, and the UI says
+  `Smart search: keyword mode — no local model detected`. Large models (like a 23 GB one on an 8 GB GPU) are ignored
+  on purpose so the UI never hangs.
+- The parsed filters appear as chips with a **Clear AI filters** button, and the model is named when one answered.
+
+The model only ever fills filters. Compatibility, prices and health stay deterministic.
+
 **Refresh** is opt-in and user-initiated: 14 requests to public OpenSooq pages, no account, no cookies, no personal
 data. If it fails or returns nothing, the existing snapshot stays.
 
@@ -330,6 +343,10 @@ the detected machine:
 | Cooling service | Thermal paste and fan listings |
 | Replace the whole device | Used laptops/desktops near the median price, not the cheapest junk |
 | Recycle it properly | The real partners, with phone numbers and pickup status |
+
+The recycle card also carries the **data-destruction step**: the exact command for each detected drive
+(`nvme sanitize`, `hdparm security-erase`, `shred`), a one-click wipe attestation, and a pickup message you can copy and
+send. Physical destruction is flagged for failing drives.
 
 Each block shows the **median and the number of listings**, then the three best options with prices. "Open in Market"
 jumps to the market tab already filtered to that category.

@@ -12,6 +12,9 @@ const state = {
   market: null,
   marketFor: null,
   photos: new Map(),
+  aiFilters: null,
+  aiEngine: null,
+  aiStatus: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -83,6 +86,11 @@ async function boot() {
 
     state.prices = await call(api.prices());
     state.recyclers = await call(api.recyclers());
+    try {
+      state.aiStatus = await call(api.aiStatus());
+    } catch {
+      state.aiStatus = null;
+    }
     state.ledger = await call(api.ledger());
     renderPrices();
     renderRecyclers();
@@ -126,7 +134,7 @@ function bind() {
     if (btn) openPhoto(btn.dataset.viewPhoto);
   });
 
-  $("#remedyList").addEventListener("click", (event) => {
+  $("#remedyList").addEventListener("click", async (event) => {
     const marketBtn = event.target.closest("[data-open-market]");
     if (marketBtn) {
       const id = marketBtn.dataset.openMarket;
@@ -146,7 +154,52 @@ function bind() {
     if (recycleBtn) {
       switchTab("more");
       setTimeout(() => $("#recyclerList")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+      return;
     }
+
+    const wipeBtn = event.target.closest("[data-record-wipe]");
+    if (wipeBtn && state.view) {
+      const disk = wipeBtn.dataset.recordWipe || "drive";
+      try {
+        await call(api.recordWipe(state.view.device.id, "Secure erase (command run by the user)", disk));
+        toast(t("toast.wipeRecorded", { disk }));
+        state.view = await call(api.view(state.view.device.id));
+        renderAll();
+      } catch (err) {
+        toast(err.message, "error");
+      }
+      return;
+    }
+
+    const copyBtn = event.target.closest("[data-copy-pickup]");
+    if (copyBtn) {
+      const message = t("recycle.pickupMessage", { device: state.view?.device.name ?? "device" });
+      try {
+        await navigator.clipboard.writeText(message);
+        toast(t("toast.copied"));
+      } catch {
+        toast(message);
+      }
+      return;
+    }
+  });
+
+  $("#aiAsk").addEventListener("click", runAiSearch);
+  $("#mSearch").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      runAiSearch();
+    }
+  });
+  $("#aiChips").addEventListener("click", (event) => {
+    if (!event.target.closest("[data-ai-clear]")) return;
+    state.aiFilters = null;
+    state.aiEngine = null;
+    $("#mSearch").value = "";
+    $("#mCategory").value = "all";
+    $("#mCondition").value = "all";
+    $("#mMax").value = "";
+    renderMarket();
   });
 
   $("#marketCats").addEventListener("click", (event) => {
@@ -534,6 +587,31 @@ function remedyMarketBlock(remedy) {
   </div>`;
 }
 
+function destructionBlock() {
+  const diagnostic = state.view?.diagnostic;
+  if (!diagnostic) return "";
+  const disks = (diagnostic.disks ?? []).slice(0, 2);
+  const commands = disks
+    .map((disk) => {
+      const cmd = /nvme/i.test(disk.transport)
+        ? `sudo nvme sanitize /dev/${disk.name} -a 2`
+        : disk.rotational
+          ? `sudo shred -v -n 1 /dev/${disk.name}`
+          : `sudo hdparm --user-master u --security-set-pass p /dev/${disk.name} && sudo hdparm --user-master u --security-erase p /dev/${disk.name}`;
+      return `<div class="wipe-cmd"><span class="muted small">${esc(disk.model)} · /dev/${esc(disk.name)}</span><code>${esc(cmd)}</code></div>`;
+    })
+    .join("");
+
+  return `<div class="market-picks">
+    <div class="k muted small">${t("recycle.destroyTitle")}</div>
+    <p class="muted small" style="margin:4px 0">${t("recycle.destroyBackup")}</p>
+    ${commands}
+    <p class="muted small" style="margin:6px 0 0">${t("recycle.destroyPhysical")}</p>
+    <button class="ghost mini" data-record-wipe="${esc(disks[0]?.name ?? "")}">${t("recycle.recordWipe")}</button>
+    <button class="ghost mini" data-copy-pickup="1">${t("recycle.copyPickup")}</button>
+  </div>`;
+}
+
 function recyclerBlock() {
   if (!state.recyclers.length) return "";
   const rows = state.recyclers
@@ -605,6 +683,7 @@ function renderAdvice() {
         <div class="price-refs">${r.priceRefs.map((p) => esc(p)).join("<br>")}</div>
         ${remedyMarketBlock(r)}
         ${r.action === "recycle" ? recyclerBlock() : ""}
+        ${r.action === "recycle" ? destructionBlock() : ""}
         <div class="foot">
           <span class="muted small">${t("advice.confidence", { level: r.confidence })}</span>
           <button class="ghost" data-remedy="${esc(r.id)}">${r.action === "recycle" || r.action === "replace-device" ? t("advice.log") : t("advice.markDone")}</button>
@@ -800,6 +879,31 @@ function normText(input) {
     .toLowerCase();
 }
 
+async function runAiSearch() {
+  const query = $("#mSearch").value.trim();
+  if (!query) return;
+  const btn = $("#aiAsk");
+  btn.disabled = true;
+  const label = btn.textContent;
+  btn.textContent = t("ai.thinking");
+  try {
+    const res = await call(api.aiSearch(query, window.I18N.lang));
+    state.aiFilters = res.filters;
+    state.aiEngine = res;
+    if (res.filters.category) $("#mCategory").value = res.filters.category;
+    if (res.filters.condition) $("#mCondition").value = res.filters.condition;
+    if (res.filters.maxPriceJod) $("#mMax").value = res.filters.maxPriceJod;
+    $("#mSearch").value = "";
+    renderMarket();
+    toast(res.engine === "local-model" ? t("ai.model", { model: res.model }) : t("ai.fallback"));
+  } catch (err) {
+    toast(err.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+}
+
 async function loadMarket(force = false) {
   const deviceId = state.view?.device.id;
   if (!force && state.market && state.marketFor === (deviceId ?? null)) {
@@ -881,6 +985,30 @@ function listingRow(l) {
     </div>`;
 }
 
+function renderAiChips() {
+  const el = $("#aiChips");
+  if (!el) return;
+  const ai = state.aiFilters;
+  if (!ai) {
+    el.classList.add("hidden");
+    el.innerHTML = "";
+    return;
+  }
+  const bits = [
+    ai.category,
+    ai.ramGen,
+    ai.formFactor,
+    ai.minCapacityGb ? `${ai.minCapacityGb} GB+` : null,
+    ai.maxPriceJod ? `≤ ${ai.maxPriceJod} JOD` : null,
+    ai.condition,
+  ].filter(Boolean);
+  const engine = state.aiEngine?.engine === "local-model" ? state.aiEngine.model : "keywords";
+  el.innerHTML = `<span class="badge blue">${esc(engine)}</span> ${bits
+    .map((b) => `<span class="chip">${esc(b)}</span>`)
+    .join("")} <button class="ghost mini" data-ai-clear>${t("ai.clear")}</button>`;
+  el.classList.remove("hidden");
+}
+
 function renderMarket() {
   const market = state.market;
   if (!market) return;
@@ -930,6 +1058,18 @@ function renderMarket() {
       if (condition !== "all" && l.condition !== condition) return false;
       if (l.priceJod > max) return false;
       if (q && !normText(`${l.title} ${l.tags.join(" ")} ${l.oqCategory} ${l.brand ?? ""}`).includes(q)) return false;
+
+      const ai = state.aiFilters;
+      if (ai) {
+        if (ai.ramGen && (l.ramGen ?? "") !== ai.ramGen) return false;
+        if (ai.formFactor && (l.formFactor ?? "") !== ai.formFactor) return false;
+        if (ai.minCapacityGb && (l.capacityGb ?? 0) < ai.minCapacityGb) return false;
+        const hasSpec = Boolean(ai.ramGen || ai.formFactor || ai.minCapacityGb);
+        if (!hasSpec && ai.keywords?.length) {
+          const hay = normText(`${l.title} ${l.tags.join(" ")} ${l.brand ?? ""}`);
+          if (!ai.keywords.some((k) => hay.includes(normText(k)))) return false;
+        }
+      }
       return true;
     })
     .sort((a, b) => {
@@ -968,9 +1108,18 @@ function renderMarket() {
     hiddenIncompatible ? t("market.noMatchIncompatible", { n: hiddenIncompatible }) : "",
   ].filter(Boolean);
 
+  renderAiChips();
+  const aiNote = $("#aiNote");
+  if (aiNote) {
+    aiNote.textContent = state.aiStatus?.available
+      ? t("ai.noteModel", { model: state.aiStatus.model })
+      : t("ai.noteKeywords");
+  }
   $("#marketList").innerHTML = filtered.length
     ? filtered.slice(0, 150).map(listingRow).join("")
-    : `<p class="muted small">${t("market.noMatch")}${emptyHints.length ? " " + emptyHints.join(" ") : ""}</p>`;
+    : `<p class="muted small">${t("market.noMatch")}${
+        state.aiFilters ? " " + t("market.aiEmpty") : ""
+      }${emptyHints.length ? " " + emptyHints.join(" ") : ""}</p>`;
 }
 
 async function openPhoto(listingId) {

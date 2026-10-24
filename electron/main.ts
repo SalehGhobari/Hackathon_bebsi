@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import { Store } from "../lib/store";
 import { compactForQr, verifyPassport } from "../lib/passport";
 import { renderPassportHtml } from "./passport-pdf";
+import { aiSearch, aiStatus } from "../lib/ai";
 
 let store: Store;
 let win: BrowserWindow | null = null;
@@ -85,6 +86,12 @@ function registerIpc() {
     store.refreshMarket((payload as { deviceId?: string } | undefined)?.deviceId),
   );
   handle("market:image", (payload) => store.image((payload as { listingId: string }).listingId));
+
+  handle("ai:status", () => aiStatus());
+  handle("ai:search", (payload) => {
+    const { query, lang } = payload as { query: string; lang?: "en" | "ar" };
+    return aiSearch(query, lang === "ar" ? "ar" : "en");
+  });
 
 
   handle("wipe:add", (payload) => {

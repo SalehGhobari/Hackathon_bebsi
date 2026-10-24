@@ -377,3 +377,15 @@ select:focus, input:focus { outline: 1px solid var(--mint-dim); }
 .pick-title.rtl { text-align: right; }
 .pick-price { color: var(--sand); font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .market-picks .ghost.mini { margin-top: 8px; }
+
+/* ---------- AI search + data destruction ---------- */
+.market-main-filter { display: flex; gap: 8px; margin-top: 10px; }
+.market-main-filter #mSearch { flex: 1 1 auto; }
+.market-main-filter select { flex: 0 1 170px; }
+.ai-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
+.wipe-cmd { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+.wipe-cmd code {
+  display: block; background: #0a0f13; border: 1px solid var(--line); border-radius: 6px;
+  padding: 6px 8px; font-size: 11px; color: var(--mint); word-break: break-all; direction: ltr;
+}
+.market-picks .ghost.mini + .ghost.mini { margin-inline-start: 6px; }

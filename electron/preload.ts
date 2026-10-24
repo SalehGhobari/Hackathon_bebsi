@@ -15,6 +15,8 @@ const api = {
   market: (deviceId?: string) => invoke("market:get", { deviceId }),
   refreshMarket: (deviceId?: string) => invoke("market:refresh", { deviceId }),
   listingImage: (listingId: string) => invoke("market:image", { listingId }),
+  aiStatus: () => invoke("ai:status"),
+  aiSearch: (query: string, lang?: string) => invoke("ai:search", { query, lang }),
 
   recordWipe: (deviceId: string, method: string, disk: string) =>
     invoke("wipe:add", { deviceId, method, disk }),
