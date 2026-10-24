@@ -20,6 +20,7 @@ const api = {
     invoke("wipe:add", { deviceId, method, disk }),
   passport: (deviceId: string) => invoke("passport", { deviceId }),
   verifyPassport: (passport: unknown) => invoke("passport:verify", { passport }),
+  passportPdf: (deviceId: string, lang?: string) => invoke("passport:pdf", { deviceId, lang }),
 };
 
 contextBridge.exposeInMainWorld("fahes", api);

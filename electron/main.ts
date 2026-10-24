@@ -1,8 +1,11 @@
-import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
 import QRCode from "qrcode";
 import { Store } from "../lib/store";
 import { compactForQr, verifyPassport } from "../lib/passport";
+import { renderPassportHtml } from "./passport-pdf";
 
 let store: Store;
 let win: BrowserWindow | null = null;
@@ -100,6 +103,51 @@ function registerIpc() {
       color: { dark: "#0b0f12", light: "#ffffff" },
     });
     return { passport, qr, compact: compactForQr(passport) };
+  });
+
+  handle("passport:pdf", async (payload) => {
+    const { deviceId, lang } = payload as { deviceId: string; lang?: "en" | "ar" };
+    const passport = store.passport(deviceId);
+    if (!passport) throw new Error("No passport available for this device.");
+
+    const qr = await QRCode.toDataURL(compactForQr(passport), {
+      margin: 1,
+      width: 420,
+      color: { dark: "#101820", light: "#ffffff" },
+    });
+    const html = renderPassportHtml(passport, qr, lang === "ar" ? "ar" : "en");
+    const tmp = path.join(os.tmpdir(), `fahes-passport-${Date.now()}.html`);
+    fs.writeFileSync(tmp, html, "utf8");
+
+    const win = new BrowserWindow({ show: false, webPreferences: { offscreen: true, javascript: false } });
+    try {
+      await win.loadFile(tmp);
+      const pdf = await win.webContents.printToPDF({ printBackground: true, pageSize: "A4" });
+
+      const forcedPath = process.env.FAHES_PDF_PATH;
+      if (forcedPath) {
+        fs.writeFileSync(forcedPath, pdf);
+        return { saved: true, path: forcedPath };
+      }
+
+      const result = await dialog.showSaveDialog({
+        title: "Save passport",
+        defaultPath: `fahes-passport-${(passport.device.name || "device")
+          .replace(/[^a-z0-9]+/gi, "-")
+          .toLowerCase()}.pdf`,
+        filters: [{ name: "PDF", extensions: ["pdf"] }],
+      });
+      if (result.canceled || !result.filePath) return { saved: false };
+      fs.writeFileSync(result.filePath, pdf);
+      return { saved: true, path: result.filePath };
+    } finally {
+      win.destroy();
+      try {
+        fs.unlinkSync(tmp);
+      } catch {
+        /* temp file already gone */
+      }
+    }
   });
 
   handle("passport:verify", (payload) => {

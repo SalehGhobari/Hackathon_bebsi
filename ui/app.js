@@ -143,7 +143,10 @@ function bind() {
       return;
     }
     const recycleBtn = event.target.closest("[data-open-recycle]");
-    if (recycleBtn) switchTab("recycle");
+    if (recycleBtn) {
+      switchTab("more");
+      setTimeout(() => $("#recyclerList")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+    }
   });
 
   $("#marketCats").addEventListener("click", (event) => {
@@ -197,13 +200,13 @@ function bind() {
   $("#passportBtn").addEventListener("click", generatePassport);
 
   $("#passportBox").addEventListener("click", async (event) => {
-    if (event.target.closest("#downloadPassport") && state.passport) {
-      const blob = new Blob([JSON.stringify(state.passport.passport, null, 2)], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `fahes-passport-${(state.view?.device.name || "device").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.json`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    if (event.target.closest("#downloadPassportPdf") && state.view) {
+      try {
+        const res = await call(api.passportPdf(state.view.device.id, window.I18N.lang));
+        if (res.saved) toast(t("toast.pdfSaved", { path: res.path }));
+      } catch (err) {
+        toast(err.message, "error");
+      }
     }
     if (event.target.closest("#verifyPassport") && state.passport) {
       try {
@@ -357,7 +360,7 @@ function switchTab(tab) {
       p.classList.toggle("hidden", p.id !== `panel-${tab}`);
     });
   }
-  if (tab === "passport") renderPassport();
+  if (tab === "more") renderPassport();
   if (tab === "market") loadMarket();
 }
 
@@ -376,7 +379,7 @@ function applyLanguage() {
   renderRecyclers();
   refreshDevices();
   if (state.tab === "market") renderMarket();
-  if (state.tab === "passport") renderPassport();
+  if (state.tab === "more") renderPassport();
 }
 
 function renderAll() {
@@ -564,7 +567,7 @@ function renderAdvice() {
         <div class="remedy-head">
           <div>
             <div class="badges">
-              ${recommended ? '<span class="badge mint">${t("advice.recommended")}</span>' : ""}
+              ${recommended ? `<span class="badge mint">${t("advice.recommended")}</span>` : ""}
               <span class="badge sand">${t("hier." + r.hierarchy)}</span>
               <span class="badge">${t("action." + r.action)}</span>
               <span class="badge ${r.safety === "diy" ? "mint" : r.safety === "shop" ? "blue" : "red"}">${t("safety." + r.safety)}</span>
@@ -612,8 +615,7 @@ function renderAdvice() {
 
   const replacement = advice.replacement;
   $("#replacementBox").innerHTML = replacement
-    ? `<div class="card">
-        <div class="card-head"><h2>${t("advice.replacement")}</h2></div>
+    ? `<div>
         <div class="metrics">
           <div class="metric"><div class="k">${t("advice.newDevice")}</div><div class="v">${range(replacement.costLow, replacement.costHigh, "JOD")}</div></div>
           <div class="metric"><div class="k">${t("advice.assumedLife")}</div><div class="v">${replacement.years} <small>${t("advice.years")}</small></div></div>
@@ -756,7 +758,7 @@ function renderPassport() {
   $("#wipeBox").innerHTML = wipeHtml;
 
   if (!state.passport) {
-    box.innerHTML = `<p class="muted small">${actions?.length ? t("passport.ready") : t("passport.needCheck")}</p>`;
+    box.innerHTML = `<p class="muted small">${actions?.length ? t("passport.ready") : t("passport.needDecision")}</p>`;
     return;
   }
 
@@ -777,7 +779,7 @@ function renderPassport() {
         <p class="hash">sha256 ${esc(p.hash)}</p>
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="ghost" id="verifyPassport">${t("passport.verify")}</button>
-          <button class="ghost" id="downloadPassport">${t("passport.download")}</button>
+          <button class="ghost" id="downloadPassportPdf">${t("passport.downloadPdf")}</button>
         </div>
       </div>
     </div>`;
@@ -951,7 +953,7 @@ function renderMarket() {
   const buckets = market.buckets.filter((b) => category === "all" || b.category === category).slice(0, 8);
   $("#marketBuckets").innerHTML = buckets.length
     ? buckets.map(bucketCard).join("")
-    : '<p class="muted small">${t("market.noBuckets")}</p>';
+    : `<p class="muted small">${t("market.noBuckets")}</p>`;
 
   const hiddenNotes = [
     hiddenOutliers ? t("market.hiddenOutliers", { n: hiddenOutliers }) : "",

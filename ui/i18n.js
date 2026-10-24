@@ -2,6 +2,10 @@
 (function () {
   const DICT = {
     en: {
+      "nav.fix": "Fix it",
+      "nav.more": "More",
+      "market.filters": "More filters",
+      "market.ranges": "Price ranges by spec",
       "nav.overview": "Overview",
       "nav.remedies": "Remedies",
       "nav.impact": "Impact",
@@ -159,6 +163,8 @@
       "passport.generate": "Generate passport",
       "passport.verify": "Verify hash",
       "passport.download": "Download JSON",
+      "passport.downloadPdf": "Download PDF",
+      "toast.pdfSaved": "Passport saved to {path}",
       "passport.issued": "Issued {date}",
       "passport.health": "{score}/100 health",
       "passport.wiped": "data wiped",
@@ -170,6 +176,7 @@
       "passport.drive": "Drive",
       "passport.record": "Record wipe attestation",
       "passport.ready": "Ready to issue.",
+      "passport.needDecision": "Log at least one decision to make the passport meaningful.",
       "passport.needCheck": "Run a check first.",
       "passport.noWipeYet": "No wipe recorded for this device yet.",
 
@@ -258,6 +265,10 @@
     },
 
     ar: {
+      "nav.fix": "أصلحه",
+      "nav.more": "المزيد",
+      "market.filters": "مرشحات إضافية",
+      "market.ranges": "نطاقات الأسعار حسب المواصفات",
       "nav.overview": "نظرة عامة",
       "nav.remedies": "الحلول",
       "nav.impact": "الأثر",
@@ -415,6 +426,8 @@
       "passport.generate": "إنشاء الجواز",
       "passport.verify": "تحقق من البصمة",
       "passport.download": "تنزيل JSON",
+      "passport.downloadPdf": "تنزيل PDF",
+      "toast.pdfSaved": "تم حفظ الجواز في {path}",
       "passport.issued": "صدر في {date}",
       "passport.health": "صحة {score}/100",
       "passport.wiped": "تم محو البيانات",
@@ -426,6 +439,7 @@
       "passport.drive": "القرص",
       "passport.record": "تسجيل إقرار المحو",
       "passport.ready": "جاهز للإصدار.",
+      "passport.needDecision": "سجّل قراراً واحداً على الأقل ليكون الجواز ذا معنى.",
       "passport.needCheck": "شغّل فحصاً أولاً.",
       "passport.noWipeYet": "لا يوجد محو مسجل لهذا الجهاز بعد.",
 

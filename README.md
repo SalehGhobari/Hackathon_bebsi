@@ -110,6 +110,18 @@ AppImage needs FUSE 2; on Arch install `libfuse2`, or run with `--appimage-extra
 
 ---
 
+## Navigation (kept small on purpose)
+
+| Tab | What lives there |
+|---|---|
+| **Overview** | health ring, findings, and collapsed "This machine" / "Sensor notes" |
+| **Fix it** | one recommendation, remedies with local market options, collapsed replacement baseline and decision log |
+| **Market** | search + category chips; extra filters and price ranges are behind folds |
+| **Impact** | avoided spend, CO₂e, diverted kilograms, recovered materials |
+| **More** | price book, recycling partners, second-life passport and data destruction |
+
+Secondary controls sit behind disclosure folds, so the first screen answers one question at a time.
+
 ## How it works
 
 ```
@@ -288,6 +300,20 @@ disk. The diagnostic is flagged `demo: true`, the UI shows a banner, and the val
 - Prices are seed ranges and will be stale; the source/date are shown next to every number.
 - No live component shopping links (deliberate: no network).
 - The passport verifies integrity, not truthfulness — it proves the record was not altered after issue.
+
+### Passport as a PDF
+
+"Download PDF" on the passport produces a one-page A4 document via Electron's `printToPDF` — no PDF library, no
+remote assets:
+
+- QR code, device and health summary
+- avoided CO₂e, diverted kilograms, recovered materials
+- wipe record (method, date, nonce) or an explicit "no wipe record"
+- SHA-256 of the record and a disclaimer that it proves integrity, not condition
+
+It renders in the current language, including RTL Arabic.
+
+![Passport PDF](docs/passport-pdf.png)
 
 ## From a fault to a fix
 
