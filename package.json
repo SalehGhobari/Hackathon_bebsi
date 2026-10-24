@@ -1,0 +1,30 @@
+{
+  "name": "fahas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fahas - a local-first hardware advisor: diagnose, repair, upgrade, recycle.",
+  "license": "MIT",
+  "author": "Fahas",
+  "main": "dist/electron/main.js",
+  "scripts": {
+    "build:main": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --format=cjs --external:electron --outdir=dist/electron",
+    "dev": "npm run build:main && electron .",
+    "start": "npm run dev",
+    "test:scan": "esbuild test/scan.ts --bundle --platform=node --format=cjs --outfile=dist/test-scan.cjs && node dist/test-scan.cjs",
+    "typecheck": "tsc --noEmit",
+    "pack:linux": "npm run build:main && electron-builder --linux AppImage",
+    "pack:win": "npm run build:main && electron-builder --win nsis",
+    "pack:dir": "npm run build:main && electron-builder --dir"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/qrcode": "^1.5.5",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.2"
+  }
+}

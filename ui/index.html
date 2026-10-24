@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'self'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fahas — hardware advisor</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="mark">ف</div>
+          <div>
+            <strong>Fahas</strong>
+            <small>فحص · hardware advisor</small>
+          </div>
+        </div>
+
+        <button id="scanBtn" class="primary wide">Run a check</button>
+        <label class="demo-toggle">
+          <input type="checkbox" id="demoToggle" />
+          <span>Simulate wear <small>(demo mode)</small></span>
+        </label>
+
+        <div class="label">Devices</div>
+        <div id="deviceList" class="device-list"></div>
+
+        <div class="side-foot">
+          <div class="privacy">
+            <span class="dot"></span>
+            <div>
+              Local only
+              <small>No network · no account · no upload</small>
+            </div>
+          </div>
+          <div id="infoLine" class="tiny"></div>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <h1 id="deviceName">No device checked yet</h1>
+            <p id="deviceMeta">Reads your hardware locally, then advises: repair, upgrade, recycle or replace.</p>
+          </div>
+          <div class="top-right">
+            <span id="healthPill" class="pill hidden"></span>
+          </div>
+        </header>
+
+        <nav class="tabs" id="tabs">
+          <button class="tab active" data-tab="overview">Overview</button>
+          <button class="tab" data-tab="advice">Remedies</button>
+          <button class="tab" data-tab="impact">Impact</button>
+          <button class="tab" data-tab="prices">Price book</button>
+          <button class="tab" data-tab="passport">Passport</button>
+        </nav>
+
+        <div id="toast" class="toast hidden"></div>
+        <div id="demoBanner" class="demo-banner hidden">
+          DEMO MODE · sensor values are simulated for this scan. Real data was not used.
+        </div>
+
+        <div id="empty" class="empty panel">
+          <div class="empty-inner">
+            <div class="empty-mark">ف</div>
+            <h2>Start with this machine</h2>
+            <p>
+              Fahas reads battery wear, drive health, memory headroom and thermals — on your device, with no network
+              access. Missing sensors are reported as “unknown”, never invented.
+            </p>
+            <button id="emptyScan" class="primary">Run a check</button>
+          </div>
+        </div>
+
+        <section id="panel-overview" class="panel hidden">
+          <div class="grid-two">
+            <div class="card">
+              <div class="card-head">
+                <h2>Health</h2>
+                <span class="muted" id="healthNote"></span>
+              </div>
+              <div id="healthSummary" class="health-summary"></div>
+              <div id="healthList" class="health-list"></div>
+            </div>
+
+            <div>
+              <div class="card">
+                <div class="card-head"><h2>Findings</h2></div>
+                <div id="faultList" class="fault-list"></div>
+              </div>
+
+              <div class="card">
+                <div class="card-head"><h2>This machine</h2></div>
+                <div id="specList" class="spec-list"></div>
+              </div>
+
+              <div class="card">
+                <div class="card-head"><h2>Sensor notes</h2></div>
+                <ul id="hintList" class="hints"></ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="panel-advice" class="panel hidden">
+          <div class="card summary-card">
+            <div class="card-head"><h2>Recommendation</h2></div>
+            <p id="adviceSummary" class="summary-text"></p>
+            <p class="muted small">
+              Ranked by the waste hierarchy first (prevent → reuse → repair → recycle → replace), then by cost per year
+              of added life. Prices are Jordanian ranges with a source and a date.
+            </p>
+          </div>
+
+          <div id="remedyList" class="remedy-list"></div>
+          <div id="replacementBox"></div>
+
+          <div class="card">
+            <div class="card-head"><h2>Logged decisions</h2></div>
+            <div id="actionList" class="action-list"></div>
+          </div>
+        </section>
+
+        <section id="panel-impact" class="panel hidden">
+          <div class="grid-four" id="ledgerStats"></div>
+          <div class="card">
+            <div class="card-head"><h2>Materials kept in circulation</h2></div>
+            <div id="ledgerMaterials" class="chips"></div>
+            <p class="muted small">
+              Estimates from published lifecycle ranges. Ranges, not false precision — and recycling recovers materials,
+              it does not undo manufacturing.
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>What this means</h2></div>
+            <p class="muted">
+              Every year a working laptop stays in service avoids a share of the carbon and mining that a new one would
+              require. The cheapest repair is usually also the greenest choice — that is the whole point.
+            </p>
+          </div>
+        </section>
+
+        <section id="panel-prices" class="panel hidden">
+          <div class="card">
+            <div class="card-head">
+              <h2>Jordanian price book</h2>
+              <span class="muted small">Indicative seed ranges · editable</span>
+            </div>
+            <div class="table-wrap">
+              <table class="prices">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Spec</th>
+                    <th>Range</th>
+                    <th>Where</th>
+                    <th>Source</th>
+                  </tr>
+                </thead>
+                <tbody id="priceTable"></tbody>
+              </table>
+            </div>
+            <p class="muted small">
+              Every row carries a source and a capture date. A price without provenance is a guess, so this app refuses
+              to hide where the numbers came from.
+            </p>
+          </div>
+        </section>
+
+        <section id="panel-passport" class="panel hidden">
+          <div class="grid-two">
+            <div class="card">
+              <div class="card-head"><h2>Second-life passport</h2></div>
+              <p class="muted small">
+                A portable record of what was measured, what was repaired, and what was avoided. Useful when selling a
+                used machine — or when buying one.
+              </p>
+              <button id="passportBtn" class="primary">Generate passport</button>
+              <div id="passportBox"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-head"><h2>Data destruction</h2></div>
+              <p class="muted small">
+                Before a device is resold or recycled, the drive matters more than the hardware. Record the method you
+                used. Fahas stores an attestation locally — it is a record, not a cryptographic proof.
+              </p>
+              <div class="form-row">
+                <label>Method
+                  <select id="wipeMethod">
+                    <option>ATA Secure Erase</option>
+                    <option>NVMe sanitize</option>
+                    <option>Full overwrite + verify</option>
+                    <option>Crypto erase (self-encrypting drive)</option>
+                    <option>Physical destruction</option>
+                  </select>
+                </label>
+                <label>Drive
+                  <input id="wipeDisk" placeholder="e.g. nvme0n1" />
+                </label>
+              </div>
+              <button id="wipeBtn" class="ghost">Record wipe attestation</button>
+              <div id="wipeBox" class="wipe-box"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

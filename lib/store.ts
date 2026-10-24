@@ -1,0 +1,323 @@
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+import seedPrices from "../data/prices.json";
+import { detectDevice } from "./detect";
+import { assess } from "./health";
+import { advise, type Advice } from "./advisor";
+import { buildPassport } from "./passport";
+import { mergeMaterials } from "./green";
+import type {
+  ActionRecord,
+  Device,
+  Diagnostic,
+  Ledger,
+  MaterialAmount,
+  Passport,
+  PriceEntry,
+  WipeRecord,
+} from "./types";
+
+type Data = {
+  devices: Device[];
+  diagnostics: Diagnostic[];
+  actions: ActionRecord[];
+  prices: PriceEntry[];
+  wipes: WipeRecord[];
+};
+
+const EMPTY: Data = { devices: [], diagnostics: [], actions: [], prices: [], wipes: [] };
+
+export type DeviceView = {
+  device: Device;
+  diagnostic: Diagnostic | null;
+  advice: Advice | null;
+  actions: ActionRecord[];
+  wipe: WipeRecord | null;
+};
+
+export type ScanResult = DeviceView & { summary: string };
+
+export class Store {
+  private file: string;
+  private data: Data;
+
+  constructor(private dir: string) {
+    fs.mkdirSync(dir, { recursive: true });
+    this.file = path.join(dir, "fahas-data.json");
+    this.data = this.load();
+    this.mergeSeedPrices();
+    this.save();
+  }
+
+  private load(): Data {
+    if (!fs.existsSync(this.file)) return structuredClone(EMPTY);
+    try {
+      const parsed = JSON.parse(fs.readFileSync(this.file, "utf8")) as Partial<Data>;
+      return {
+        devices: parsed.devices ?? [],
+        diagnostics: parsed.diagnostics ?? [],
+        actions: parsed.actions ?? [],
+        prices: parsed.prices ?? [],
+        wipes: parsed.wipes ?? [],
+      };
+    } catch {
+      try {
+        fs.copyFileSync(this.file, `${this.file}.corrupt-${Date.now()}`);
+      } catch {
+        /* ignore */
+      }
+      return structuredClone(EMPTY);
+    }
+  }
+
+  private mergeSeedPrices() {
+    const known = new Set(this.data.prices.map((p) => p.id));
+    for (const p of seedPrices as PriceEntry[]) {
+      if (!known.has(p.id)) this.data.prices.push(p);
+    }
+  }
+
+  private save() {
+    const tmp = `${this.file}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(this.data, null, 2), { mode: 0o600 });
+    fs.renameSync(tmp, this.file);
+    try {
+      fs.chmodSync(this.file, 0o600);
+    } catch {
+      /* windows */
+    }
+  }
+
+  dataDir(): string {
+    return this.dir;
+  }
+
+  async scan(options: { demo?: boolean } = {}): Promise<ScanResult> {
+    const detection = await detectDevice();
+    if (options.demo) applyDemoWear(detection);
+    const { health, faults } = assess(detection);
+    const advice = advise(detection, health, faults);
+    const now = new Date().toISOString();
+
+    const id = detection.serialHash ? `dev-${detection.serialHash}` : `dev-${crypto.randomUUID()}`;
+    const existing = this.data.devices.find((d) => d.id === id);
+    const name =
+      [detection.brand, detection.model].filter(Boolean).join(" ").trim() ||
+      (detection.class === "laptop" ? "This laptop" : "This computer");
+
+    const device: Device = {
+      id,
+      name,
+      class: detection.class,
+      brand: detection.brand,
+      model: detection.model,
+      serialHash: detection.serialHash,
+      year: existing?.year ?? null,
+      notes: existing?.notes ?? "",
+      createdAt: existing?.createdAt ?? now,
+      lastSeenAt: now,
+      platform: detection.distro ?? detection.platform,
+      hints: detection.hints,
+    };
+
+    this.data.devices = [device, ...this.data.devices.filter((d) => d.id !== id)];
+
+    const diagnostic: Diagnostic = {
+      id: crypto.randomUUID(),
+      deviceId: id,
+      createdAt: now,
+      cpu: detection.cpu,
+      ram: detection.ram,
+      disks: detection.disks,
+      battery: detection.battery,
+      thermal: detection.thermal,
+      storage: detection.storage,
+      os: detection.os,
+      health,
+      faults,
+      demo: options.demo ?? false,
+    };
+
+    this.data.diagnostics = [diagnostic, ...this.data.diagnostics].slice(0, 200);
+    this.save();
+
+    return {
+      device,
+      diagnostic,
+      advice,
+      actions: this.actionsFor(id),
+      wipe: this.wipeFor(id),
+      summary: advice.summary,
+    };
+  }
+
+  listDevices(): Device[] {
+    return [...this.data.devices].sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt));
+  }
+
+  getDevice(id: string): Device | null {
+    return this.data.devices.find((d) => d.id === id) ?? null;
+  }
+
+  latestDiagnostic(deviceId: string): Diagnostic | null {
+    return this.data.diagnostics.find((d) => d.deviceId === deviceId) ?? null;
+  }
+
+  actionsFor(deviceId: string): ActionRecord[] {
+    return this.data.actions.filter((a) => a.deviceId === deviceId);
+  }
+
+  wipeFor(deviceId: string): WipeRecord | null {
+    const device = this.getDevice(deviceId);
+    if (!device) return null;
+    return this.data.wipes.find((w) => w.serialHash === device.serialHash) ?? null;
+  }
+
+  view(deviceId: string): DeviceView | null {
+    const device = this.getDevice(deviceId);
+    if (!device) return null;
+    const diagnostic = this.latestDiagnostic(deviceId);
+    const advice = diagnostic ? adviseFromDiagnostic(diagnostic, device.class) : null;
+    return { device, diagnostic, advice, actions: this.actionsFor(deviceId), wipe: this.wipeFor(deviceId) };
+  }
+
+  addAction(deviceId: string, remedyId: string): ActionRecord | null {
+    const view = this.view(deviceId);
+    if (!view || !view.diagnostic || !view.advice) return null;
+    const remedy = view.advice.remedies.find((r) => r.id === remedyId);
+    if (!remedy) return null;
+
+    const cost = (remedy.costLow + remedy.costHigh) / 2 + (remedy.laborLow + remedy.laborHigh) / 2;
+    const action: ActionRecord = {
+      id: crypto.randomUUID(),
+      deviceId,
+      diagnosticId: view.diagnostic.id,
+      remedyId,
+      action: remedy.action,
+      title: remedy.title,
+      cost: Math.round(cost),
+      co2eAvoidedKg: remedy.co2eAvoidedKg,
+      kgDiverted: remedy.kgDiverted,
+      materials: remedy.materials,
+      createdAt: new Date().toISOString(),
+    };
+    this.data.actions.unshift(action);
+    this.save();
+    return action;
+  }
+
+  removeAction(id: string): boolean {
+    const before = this.data.actions.length;
+    this.data.actions = this.data.actions.filter((a) => a.id !== id);
+    if (this.data.actions.length !== before) {
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
+  recordWipe(deviceId: string, method: string, disk: string): WipeRecord | null {
+    const device = this.getDevice(deviceId);
+    if (!device) return null;
+    const record: WipeRecord = {
+      claimedAt: new Date().toISOString(),
+      method,
+      disk,
+      serialHash: device.serialHash,
+      nonceHash: crypto.createHash("sha256").update(crypto.randomUUID()).digest("hex").slice(0, 32),
+      note: "Operator attestation recorded locally. This is not a cryptographic proof of erasure — verify the drive yourself.",
+    };
+    this.data.wipes.unshift(record);
+    this.save();
+    return record;
+  }
+
+  ledger(): Ledger {
+    const actions = this.data.actions;
+    const co2eAvoidedKg = Math.round(actions.reduce((s, a) => s + a.co2eAvoidedKg, 0));
+    const kgDiverted = Math.round(actions.reduce((s, a) => s + a.kgDiverted, 0) * 10) / 10;
+    const materials: MaterialAmount[] = mergeMaterials(actions.flatMap((a) => a.materials));
+
+    const newDevice = this.data.prices.find((p) => p.category === "new-laptop");
+    const replacementLow = newDevice?.low ?? 0;
+    const jodSaved = Math.round(
+      actions.reduce((sum, a) => {
+        if (a.co2eAvoidedKg <= 0) return sum;
+        return sum + Math.max(0, replacementLow - a.cost);
+      }, 0),
+    );
+
+    return { devices: this.data.devices.length, actions: actions.length, co2eAvoidedKg, kgDiverted, jodSaved, materials };
+  }
+
+  prices(): PriceEntry[] {
+    return [...this.data.prices].sort((a, b) => a.category.localeCompare(b.category));
+  }
+
+  passport(deviceId: string): Passport | null {
+    const view = this.view(deviceId);
+    if (!view) return null;
+    return buildPassport(view.device, view.diagnostic, view.actions, view.wipe);
+  }
+}
+
+/**
+ * Demo mode: overlays realistic wear on a healthy machine so the advisor can be
+ * shown on any laptop. The diagnostic is flagged so the UI never presents it as real.
+ */
+function applyDemoWear(detection: Awaited<ReturnType<typeof detectDevice>>) {
+  detection.class = "laptop";
+  detection.battery = {
+    present: true,
+    designWh: 60,
+    fullWh: 34.8,
+    healthPct: 58,
+    cycles: 812,
+    status: "Discharging",
+    technology: "lithium-ion",
+    note: "SIMULATED for demo mode.",
+  };
+  if (detection.disks.length === 0) {
+    detection.disks = [
+      {
+        name: "demo0",
+        model: "Generic SATA SSD 480 GB",
+        sizeGb: 480,
+        rotational: false,
+        transport: "sata",
+        smart: {
+          available: true,
+          health: "passed",
+          temperatureC: 61,
+          powerOnHours: 21400,
+          enduranceUsedPct: 87,
+          mediaErrors: 0,
+        },
+      },
+    ];
+  } else {
+    detection.disks = detection.disks.map((d, i) =>
+      i === 0
+        ? {
+            ...d,
+            smart: { ...d.smart, available: true, enduranceUsedPct: 87, temperatureC: 61, health: "passed" },
+          }
+        : d,
+    );
+  }
+  detection.thermal = {
+    sensors: [{ name: "CPU package (simulated)", valueC: 94 }],
+    maxC: 94,
+    fanRpm: 5200,
+    note: "SIMULATED for demo mode.",
+  };
+  detection.ram = { ...detection.ram, totalGb: 6 };
+  detection.storage = { ...detection.storage, usedPct: 96, freeGb: 6 };
+  detection.hints = ["DEMO MODE: sensor values are simulated. Real readings were replaced for this scan."];
+}
+
+/** Advice is derived, never stored: it always reflects the current price book. */
+function adviseFromDiagnostic(diagnostic: Diagnostic, cls: Device["class"]): Advice {
+  return advise({ class: cls, ram: diagnostic.ram, disks: diagnostic.disks }, diagnostic.health, diagnostic.faults);
+}

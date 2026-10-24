@@ -1,0 +1,24 @@
+appId: jo.fahas.desktop
+productName: Fahas
+copyright: Apache-2.0
+directories:
+  output: release
+files:
+  - dist/electron/**/*
+  - ui/**/*
+  - package.json
+asar: true
+linux:
+  target:
+    - AppImage
+  category: Utility
+  artifactName: ${productName}-${version}-${arch}.AppImage
+win:
+  target:
+    - nsis
+  artifactName: ${productName}-Setup-${version}-${arch}.exe
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
