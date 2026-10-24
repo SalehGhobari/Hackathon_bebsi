@@ -21,26 +21,60 @@ $cpu     = Get-CimInstance Win32_Processor | Select-Object -First 1
 $memory  = @(Get-CimInstance Win32_PhysicalMemory)
 $battery = Get-CimInstance Win32_Battery | Select-Object -First 1
 
-$bStatic = Get-CimInstance -Namespace root\wmi -ClassName BatteryStaticData | Select-Object -First 1
-$bFull   = Get-CimInstance -Namespace root\wmi -ClassName BatteryFullChargedCapacity | Select-Object -First 1
-$bCycle  = Get-CimInstance -Namespace root\wmi -ClassName BatteryCycleCount | Select-Object -First 1
+$bStatic = Get-WmiObject -Namespace root\wmi -Class BatteryStaticData -ErrorAction SilentlyContinue | Select-Object -First 1
+$bFull   = Get-WmiObject -Namespace root\wmi -Class BatteryFullChargedCapacity -ErrorAction SilentlyContinue | Select-Object -First 1
+$bCycle  = Get-WmiObject -Namespace root\wmi -Class BatteryCycleCount -ErrorAction SilentlyContinue | Select-Object -First 1
 
 $physical = @(Get-PhysicalDisk)
+$wmiDisks = @(Get-CimInstance Win32_DiskDrive)
 $reliability = @()
 foreach ($d in $physical) {
-  $r = Get-StorageReliabilityCounter -PhysicalDisk $d | Select-Object -First 1
-  $reliability += [pscustomobject]@{
-    FriendlyName    = $d.FriendlyName
-    Wear            = $r.Wear
-    Temperature     = $r.Temperature
-    PowerOnHours    = $r.PowerOnHours
-    ReadErrorsTotal = $r.ReadErrorsTotal
+  $r = Get-StorageReliabilityCounter -PhysicalDisk $d -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($r) {
+    $reliability += [pscustomobject]@{
+      FriendlyName    = $d.FriendlyName
+      Wear            = $r.Wear
+      Temperature     = $r.Temperature
+      PowerOnHours    = $r.PowerOnHours
+      ReadErrorsTotal = $r.ReadErrorsTotal
+    }
+  }
+}
+
+# Get-PhysicalDisk reports BusType "RAID" for NVMe drives behind Intel RST/VMD,
+# so InterfaceType and PNPDeviceID are carried through to identify the real bus.
+$disksOut = @()
+foreach ($d in $physical) {
+  $wmi = $wmiDisks | Where-Object { [string]$_.Index -eq [string]$d.DeviceId } | Select-Object -First 1
+  $disksOut += [pscustomobject]@{
+    DeviceId      = $d.DeviceId
+    FriendlyName  = $d.FriendlyName
+    HealthStatus  = $d.HealthStatus
+    Size          = $d.Size
+    MediaType     = $d.MediaType
+    BusType       = $d.BusType
+    InterfaceType = $wmi.InterfaceType
+    PnpId         = $wmi.PNPDeviceID
   }
 }
 
 $osInfo  = Get-CimInstance Win32_OperatingSystem
 $volume  = Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" | Where-Object { $_.DeviceID -eq 'C:' } | Select-Object -First 1
-$thermal = @(Get-CimInstance -Namespace root/wmi -ClassName MSAcpi_ThermalZoneTemperature)
+$thermal = @(Get-CimInstance -Namespace root/wmi -ClassName MSAcpi_ThermalZoneTemperature -ErrorAction SilentlyContinue)
+if (-not $thermal -or $thermal.Count -eq 0) {
+  try {
+    $samples = (Get-Counter '\Thermal Zone Information(*)\Temperature' -ErrorAction SilentlyContinue).CounterSamples
+    $thermal = @()
+    foreach ($s in $samples) {
+      $thermal += [pscustomobject]@{
+        InstanceName      = $s.InstanceName
+        CurrentTemperature = [int]([double]$s.CookedValue * 10)
+      }
+    }
+  } catch {
+    $thermal = @()
+  }
+}
 
 $payload = [pscustomobject]@{
   computer      = $cs
@@ -51,7 +85,7 @@ $payload = [pscustomobject]@{
   batteryStatic = $bStatic
   batteryFull   = $bFull
   batteryCycle  = $bCycle
-  disks         = $physical
+  disks         = $disksOut
   reliability   = $reliability
   os            = $osInfo
   volume        = $volume
@@ -132,6 +166,16 @@ function isoDate(value: unknown): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+/** Win32_Battery.Chemistry → the short names sysfs uses on Linux, for parity. */
+const SMBIOS_BATTERY_CHEMISTRY: Record<number, string> = {
+  3: "Lead-acid",
+  4: "NiCd",
+  5: "NiMH",
+  6: "Li-ion",
+  7: "Zinc-air",
+  8: "Li-poly",
+};
+
 function batteryFromWindows(p: PsPayload): Detection["battery"] {
   const bat = p.battery;
   if (!bat) return emptyBattery("No battery detected (desktop, or the battery is not exposed by Windows).");
@@ -147,6 +191,7 @@ function batteryFromWindows(p: PsPayload): Detection["battery"] {
   const fullWh = fullMwh ? round(fullMwh / 1000, 1) : null;
 
   const statusCode = num(bat.BatteryStatus as number | undefined);
+  const chemistryCode = num(bat.Chemistry as number | undefined);
   const statusMap: Record<number, string> = {
     1: "Discharging",
     2: "Charging (AC)",
@@ -166,12 +211,30 @@ function batteryFromWindows(p: PsPayload): Detection["battery"] {
     healthPct: designWh && fullWh ? round((fullWh / designWh) * 100, 1) : null,
     cycles: num(p.batteryCycle?.CycleCount as number | undefined),
     status: statusCode ? (statusMap[statusCode] ?? String(statusCode)) : null,
-    technology: "—",
+    technology: chemistryCode !== null ? (SMBIOS_BATTERY_CHEMISTRY[chemistryCode] ?? null) : null,
     note:
       designWh === null
         ? "Windows did not expose design capacity. Health % cannot be computed; ask for the battery report (powercfg /batteryreport)."
         : undefined,
   };
+}
+
+/**
+ * Windows reports an NVMe drive behind Intel RST/VMD as BusType "RAID" and
+ * InterfaceType "SCSI". The PNP id still carries the truth (VEN_NVME), so it is
+ * the first thing we look at; otherwise fall back to the bus type.
+ */
+function transportFromWindows(d: PsObject): string {
+  const pnp = String(d.PnpId ?? "");
+  const name = String(d.FriendlyName ?? "");
+  const iface = String(d.InterfaceType ?? "");
+  const bus = String(d.BusType ?? "");
+
+  if (/ven_nvme|nvme/i.test(pnp) || /\bnvme\b/i.test(name)) return "nvme";
+  if (/usbstor|ven_usb/i.test(pnp)) return "usb";
+  if (/^sata$/i.test(bus)) return "sata";
+  if (/^scsi$/i.test(bus) && /^ide$/i.test(iface)) return "sata";
+  return bus.toLowerCase() || "unknown";
 }
 
 function disksFromWindows(p: PsPayload): DiskInfo[] {
@@ -182,7 +245,6 @@ function disksFromWindows(p: PsPayload): DiskInfo[] {
     const healthRaw = String(d.HealthStatus ?? "").toLowerCase();
     const sizeBytes = num(d.Size as number | undefined) ?? 0;
     const media = String(d.MediaType ?? "");
-    const bus = String(d.BusType ?? "unknown");
 
     const wear = num(rel?.Wear as number | undefined);
     const smart: SmartInfo = {
@@ -200,7 +262,7 @@ function disksFromWindows(p: PsPayload): DiskInfo[] {
       model: name,
       sizeGb: round(sizeBytes / 1e9, 1),
       rotational: /hdd/i.test(media),
-      transport: bus.toLowerCase(),
+      transport: transportFromWindows(d),
       smart,
     };
   });
