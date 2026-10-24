@@ -289,6 +289,28 @@ disk. The diagnostic is flagged `demo: true`, the UI shows a banner, and the val
 - No live component shopping links (deliberate: no network).
 - The passport verifies integrity, not truthfulness — it proves the record was not altered after issue.
 
+## From a fault to a fix
+
+![Remedies with local options](docs/remedy-market.png)
+
+The diagnosis and the market used to be separate tabs. Now every remedy carries its own local options, matched against
+the detected machine:
+
+| Remedy | What it pulls from the market index |
+|---|---|
+| Replace the failing drive | SSDs of 240 GB+, filtered by the detected bus (NVMe/SATA) and form factor |
+| Add memory | RAM with the right generation and SO-DIMM/DIMM form factor |
+| Replace the battery | Laptop battery listings (coin cells excluded) |
+| Cooling service | Thermal paste and fan listings |
+| Replace the whole device | Used laptops/desktops near the median price, not the cheapest junk |
+| Recycle it properly | The real partners, with phone numbers and pickup status |
+
+Each block shows the **median and the number of listings**, then the three best options with prices. "Open in Market"
+jumps to the market tab already filtered to that category.
+
+Matches exclude price outliers, accessories, wanted/barter ads ("مطلوب", "للبدل") and anything incompatible with the
+machine. When nothing fits, it says so instead of showing a random part.
+
 ## Arabic mode (العربية)
 
 ![Arabic mode](docs/arabic-mode.png)

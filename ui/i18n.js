@@ -185,6 +185,11 @@
       "impact.body":
         "Every year a working laptop stays in service avoids a share of the carbon and mining that a new one would require. The cheapest repair is usually also the greenest choice — that is the whole point.",
 
+      "advice.localOptions": "Local options (OpenSooq) · median {median} JOD · {n} listings",
+      "advice.localNone": "No compatible local listings in the current snapshot.",
+      "advice.openMarket": "Open in Market",
+      "advice.whereToTake": "Where to take it",
+      "advice.openRecycle": "Open Recycle",
       "advice.recommended": "Recommended",
       "advice.part": "Part",
       "advice.labour": "Labour",
@@ -436,6 +441,11 @@
       "impact.body":
         "كل سنة يبقى فيها الحاسوب عاملاً تتجنّب جزءاً من الكربون والتعدين اللازمين لجهاز جديد. أرخص إصلاح هو غالباً الخيار الأكثر خضرة — وهذا هو المقصد.",
 
+      "advice.localOptions": "خيارات محلية (OpenSooq) · الوسيط {median} دينار · {n} إعلان",
+      "advice.localNone": "لا توجد إعلانات محلية متوافقة في النسخة الحالية.",
+      "advice.openMarket": "فتح في السوق",
+      "advice.whereToTake": "إلى أين تأخذه",
+      "advice.openRecycle": "فتح إعادة التدوير",
       "advice.recommended": "موصى به",
       "advice.part": "القطعة",
       "advice.labour": "أجرة اليد",

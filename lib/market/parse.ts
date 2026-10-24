@@ -38,7 +38,8 @@ const ARABIC_BRANDS: Record<string, string> = {
 };
 
 /** Words that mean "this is a component", even when a laptop is mentioned. */
-const PART_PREFIX = /^(رام|رامات|ذاكره|شاحن|شواحن|محول|ادابتر|بطاري|هارد|هاردسك|ssd|nvme|مروح|مبرد|معجون|شاشه|كيبورد|ماوس|لوحه|مذربورد|معالج|بروسيسور|كابل|كفر|شنطه|حقيبه)/;
+const PART_PREFIX =
+  /^(رام|رامات|ذاكره|شاحن|شواحن|محول|ادابتر|بطاري|هارد|هاردسك|ssd|nvme|مروح|مبرد|معجون|شاشه|كيبورد|ماوس|لوحه|مذربورد|معالج|بروسيسور|كابل|كابلات|وصلات|اسلاك|كل شاحن|كفر|شنطه|حقيبه)/;
 
 function classify(text: string): MarketCategory {
   // Readers, docks and hubs mention "SSD/NVMe" but are not drives.
@@ -67,6 +68,9 @@ function classify(text: string): MarketCategory {
   if (!isPart && desktopish) return "desktop";
 
   for (const rule of RULES) {
+    // A part-looking title must not fall through to "laptop/desktop" just
+    // because it mentions the word "computer" (e.g. "وصلات كمبيوتر").
+    if (isPart && (rule.category === "laptop" || rule.category === "desktop")) continue;
     if (rule.patterns.some((p) => p.test(text))) return rule.category;
   }
   return "other";

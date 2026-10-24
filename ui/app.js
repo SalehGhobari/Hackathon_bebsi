@@ -126,6 +126,26 @@ function bind() {
     if (btn) openPhoto(btn.dataset.viewPhoto);
   });
 
+  $("#remedyList").addEventListener("click", (event) => {
+    const marketBtn = event.target.closest("[data-open-market]");
+    if (marketBtn) {
+      const id = marketBtn.dataset.openMarket;
+      const category = ["storage-replace", "storage-upgrade"].includes(id)
+        ? "ssd"
+        : id === "ram-upgrade"
+          ? "ram"
+          : id === "battery-replace"
+            ? "battery"
+            : "cooling";
+      $("#mCategory").value = category;
+      switchTab("market");
+      renderMarket();
+      return;
+    }
+    const recycleBtn = event.target.closest("[data-open-recycle]");
+    if (recycleBtn) switchTab("recycle");
+  });
+
   $("#marketCats").addEventListener("click", (event) => {
     const chip = event.target.closest("[data-cat]");
     if (!chip) return;
@@ -251,8 +271,12 @@ async function doScan() {
     const data = await call(api.scan(demo));
     state.view = data;
     state.passport = null;
-    state.market = null;
-    state.marketFor = null;
+    try {
+      state.market = await call(api.market(data.device.id));
+      state.marketFor = data.device.id;
+    } catch {
+      state.market = null;
+    }
     state.ledger = await call(api.ledger());
     renderAll();
     renderLedger();
@@ -297,8 +321,12 @@ async function loadDevice(id) {
     if (!view) return;
     state.view = view;
     state.passport = null;
-    state.market = null;
-    state.marketFor = null;
+    try {
+      state.market = await call(api.market(view.device.id));
+      state.marketFor = view.device.id;
+    } catch {
+      state.market = null;
+    }
     renderAll();
     renderDevicesActive();
     showEmpty(false);
@@ -441,6 +469,86 @@ function diagCount(diagnostic) {
   return t("overview.scored", { known, total: diagnostic.health.items.length });
 }
 
+function marketMatchesForRemedy(remedy) {
+  const listings = state.market?.listings ?? [];
+  let test;
+  switch (remedy.id) {
+    case "storage-replace":
+    case "storage-upgrade":
+      test = (l) => l.category === "ssd" && (l.capacityGb ?? 0) >= 240;
+      break;
+    case "ram-upgrade":
+      test = (l) => l.category === "ram" && (l.capacityGb ?? 0) >= 8;
+      break;
+    case "battery-replace":
+      test = (l) => l.category === "battery" && l.variant === "laptop";
+      break;
+    case "thermal-service":
+      test = (l) => l.category === "cooling";
+      break;
+    case "replace-device":
+      test = (l) => l.category === "laptop" || l.category === "desktop";
+      break;
+    default:
+      return null;
+  }
+  return listings
+    .filter((l) => !l.outlier && l.compatibility.status !== "incompatible" && test(l))
+    .filter((l) => !/مطلوب|للبدل|بدل|wanted/i.test(l.title))
+    .sort((a, b) => a.priceJod - b.priceJod);
+}
+
+function remedyMarketBlock(remedy) {
+  if (!state.market) return "";
+  const matches = marketMatchesForRemedy(remedy);
+  if (matches === null) return "";
+  if (matches.length === 0) {
+    return `<div class="market-picks"><div class="k muted small">${t("advice.localNone")}</div></div>`;
+  }
+
+  const priced = matches.filter((l) => l.priceJod >= 10 || ["battery", "charger", "cooling"].includes(l.category));
+  if (priced.length === 0) {
+    return `<div class="market-picks"><div class="k muted small">${t("advice.localNone")}</div></div>`;
+  }
+  const median = priced[Math.floor((priced.length - 1) / 2)].priceJod;
+  const chosen =
+    remedy.id === "replace-device"
+      ? [...priced].sort((a, b) => Math.abs(a.priceJod - median) - Math.abs(b.priceJod - median)).slice(0, 3)
+      : priced.slice(0, 3);
+  const picks = chosen.map((l) => {
+    const arabic = (l.title.match(/[\u0600-\u06FF]/g) ?? []).length;
+    const rtl = arabic > 0 && arabic / Math.max(1, l.title.length) > 0.3;
+    return `<a class="pick" href="${esc(l.url)}" target="_blank" rel="noreferrer">
+      <span class="pick-title ${rtl ? "rtl" : ""}" ${rtl ? 'dir="rtl"' : ""}>${esc(l.title)}</span>
+      <span class="pick-price">${money(l.priceJod)} JOD</span>
+    </a>`;
+  });
+
+  return `<div class="market-picks">
+    <div class="k muted small">${t("advice.localOptions", { median: money(median), n: priced.length })}</div>
+    ${picks.join("")}
+    <button class="ghost mini" data-open-market="${esc(remedy.id)}">${t("advice.openMarket")}</button>
+  </div>`;
+}
+
+function recyclerBlock() {
+  if (!state.recyclers.length) return "";
+  const rows = state.recyclers
+    .map((r) => {
+      const phone = r.phones.find((p) => p.type === "mobile")?.number ?? r.phones[0]?.number ?? "";
+      return `<div class="pick">
+        <span class="pick-title">${esc(r.name)}</span>
+        <span class="pick-price" dir="ltr">${esc(phone)}</span>
+      </div>`;
+    })
+    .join("");
+  return `<div class="market-picks">
+    <div class="k muted small">${t("advice.whereToTake")}</div>
+    ${rows}
+    <button class="ghost mini" data-open-recycle="1">${t("advice.openRecycle")}</button>
+  </div>`;
+}
+
 function renderAdvice() {
   const { advice } = state.view;
   if (!advice) return;
@@ -492,6 +600,8 @@ function renderAdvice() {
           ${r.warnings.length ? `<ul>${r.warnings.map((w) => `<li><strong>${t("advice.caution")}</strong> ${esc(w)}</li>`).join("")}</ul>` : ""}
         </details>
         <div class="price-refs">${r.priceRefs.map((p) => esc(p)).join("<br>")}</div>
+        ${remedyMarketBlock(r)}
+        ${r.action === "recycle" ? recyclerBlock() : ""}
         <div class="foot">
           <span class="muted small">${t("advice.confidence", { level: r.confidence })}</span>
           <button class="ghost" data-remedy="${esc(r.id)}">${r.action === "recycle" || r.action === "replace-device" ? t("advice.log") : t("advice.markDone")}</button>

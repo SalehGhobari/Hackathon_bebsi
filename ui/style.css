@@ -359,3 +359,21 @@ select:focus, input:focus { outline: 1px solid var(--mint-dim); }
   .grid-two, .grid-four { grid-template-columns: 1fr; }
   .metrics { grid-template-columns: 1fr 1fr; }
 }
+
+/* ---------- remedy -> market integration ---------- */
+.market-picks {
+  margin-top: 10px; border: 1px solid var(--line); border-radius: 10px;
+  background: #0e1519; padding: 9px 11px;
+}
+.market-picks .k { margin-bottom: 6px; }
+.pick {
+  display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+  padding: 5px 0; border-top: 1px solid var(--line); color: var(--text); text-decoration: none;
+  font-size: 12px;
+}
+.pick:first-of-type { border-top: none; }
+.pick:hover .pick-title { color: var(--mint); }
+.pick-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick-title.rtl { text-align: right; }
+.pick-price { color: var(--sand); font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.market-picks .ghost.mini { margin-top: 8px; }
