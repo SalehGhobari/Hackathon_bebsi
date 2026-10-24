@@ -14,6 +14,7 @@
     "test:market": "esbuild test/market.ts --bundle --platform=node --format=cjs --outfile=dist/test-market.cjs && node dist/test-market.cjs",
     "test:ocr": "esbuild test/ocr.ts --bundle --platform=node --format=cjs --outfile=dist/test-ocr.cjs && node dist/test-ocr.cjs",
     "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit && npm run build:main",
     "pack:linux": "npm run build:main && electron-builder --linux AppImage",
     "pack:win": "npm run build:main && electron-builder --win nsis",
     "pack:dir": "npm run build:main && electron-builder --dir"
