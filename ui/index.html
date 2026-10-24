@@ -382,6 +382,86 @@
       </main>
     </div>
 
+
+    <div id="editModal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-card edit-card">
+        <button id="editClose" class="modal-close" aria-label="Close">×</button>
+        <h2>Edit stash item</h2>
+        <p id="editMeta" class="muted small"></p>
+
+        <div class="form-row">
+          <label>
+            <span>Title</span>
+            <input id="editTitle" required />
+          </label>
+          <label>
+            <span>Category</span>
+            <select id="editCategory">
+              <option value="other">Other</option>
+              <option value="laptop">Laptop</option>
+              <option value="desktop">Desktop</option>
+              <option value="battery">Battery</option>
+              <option value="ssd">SSD</option>
+              <option value="hdd">HDD</option>
+              <option value="ram">RAM</option>
+              <option value="charger">Charger</option>
+              <option value="cooling">Cooling</option>
+              <option value="gpu">GPU</option>
+              <option value="cpu">CPU</option>
+              <option value="motherboard">Motherboard</option>
+              <option value="keyboard">Keyboard</option>
+              <option value="printer">Printer</option>
+              <option value="router">Router</option>
+              <option value="phone">Phone</option>
+              <option value="monitor">Monitor</option>
+              <option value="usb">USB peripheral</option>
+              <option value="lan-device">LAN device</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="edit-full">
+          <span>Detail / specs</span>
+          <input id="editDetail" placeholder="Model, capacity, health, serial-safe description…" />
+        </label>
+
+        <div class="form-row edit-row">
+          <label>
+            <span>Quantity</span>
+            <input id="editQty" type="number" min="1" max="99" />
+          </label>
+          <label>
+            <span>Date added</span>
+            <input id="editDate" type="date" />
+          </label>
+          <label id="editMarketWrap">
+            <span>Market category</span>
+            <select id="editMarketCategory">
+              <option value="">Auto from category</option>
+              <option value="ram">RAM</option>
+              <option value="ssd">SSD</option>
+              <option value="hdd">HDD</option>
+              <option value="battery">Battery</option>
+              <option value="charger">Charger</option>
+              <option value="cooling">Cooling</option>
+              <option value="gpu">GPU</option>
+              <option value="laptop">Laptop</option>
+              <option value="desktop">Desktop</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="edit-full">
+          <span>Notes</span>
+          <textarea id="editNotes" rows="3" placeholder="Condition, accessories, pickup notes…"></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button id="editCancel" class="ghost" type="button">Cancel</button>
+          <button id="editSave" class="primary" type="button">Save changes</button>
+        </div>
+      </div>
+    </div>
     <div id="photoModal" class="modal hidden" role="dialog" aria-modal="true">
       <div class="modal-card">
         <button id="photoClose" class="modal-close" aria-label="Close">×</button>

@@ -33,6 +33,19 @@ async function main() {
   assert.equal(rec.kind, "recycle");
   assert.equal(rep.kind, "replace");
 
+  const beforeKg = rec.impact.kgDiverted;
+  const edited = store.updateStash(rec.id, {
+    title: "Battery pack",
+    category: "battery",
+    quantity: 2,
+    notes: "edited",
+    createdAt: "2026-09-01",
+  });
+  assert.equal(edited?.title, "Battery pack");
+  assert.equal(edited?.quantity, 2);
+  assert.ok(edited?.createdAt.startsWith("2026-09-01"));
+  assert.ok((edited?.impact.kgDiverted ?? 0) > beforeKg);
+
   store.setStashPhoto(rec.id, fs.readFileSync("build/icon.png"), "image/png");
   const batch = store.recycleBatch(store.recyclers()[0].id, [rec.id], "test pickup");
   assert.equal(batch.items.length, 1);

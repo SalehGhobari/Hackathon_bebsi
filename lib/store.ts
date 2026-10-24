@@ -339,10 +339,17 @@ export class Store {
 
   updateStash(
     id: string,
-    patch: Partial<Pick<StashItem, "title" | "category" | "detail" | "notes" | "quantity" | "marketCategory" | "requirements">>,
+    patch: Partial<
+      Pick<
+        StashItem,
+        "title" | "category" | "detail" | "notes" | "quantity" | "marketCategory" | "requirements" | "createdAt"
+      >
+    >,
   ): StashItem | null {
     const item = this.stashItem(id);
     if (!item) return null;
+    const oldCategory = item.category;
+    const oldQuantity = item.quantity;
     if (patch.title !== undefined && patch.title.trim()) item.title = patch.title.trim();
     if (patch.category !== undefined) item.category = patch.category.trim() || item.category;
     if (patch.detail !== undefined) item.detail = patch.detail.trim();
@@ -350,11 +357,15 @@ export class Store {
     if (patch.marketCategory !== undefined) item.marketCategory = patch.marketCategory;
     if (patch.requirements !== undefined) item.requirements = patch.requirements;
     if (patch.quantity !== undefined) {
-      const next = Math.max(1, Math.min(99, Math.round(patch.quantity)));
-      if (next !== item.quantity) {
-        item.impact = scaleImpact(item.impact, next / item.quantity);
-        item.quantity = next;
-      }
+      item.quantity = Math.max(1, Math.min(99, Math.round(patch.quantity)));
+    }
+    if (item.category !== oldCategory || item.quantity !== oldQuantity) {
+      // Category and quantity both feed the mass/material estimate; recompute rather than scale stale numbers.
+      item.impact = impactForStash(item.kind, item.category, item.deviceClass, item.quantity);
+    }
+    if (patch.createdAt) {
+      const parsed = new Date(`${patch.createdAt}T12:00:00`);
+      if (!Number.isNaN(parsed.getTime())) item.createdAt = parsed.toISOString();
     }
     item.updatedAt = new Date().toISOString();
     this.save();

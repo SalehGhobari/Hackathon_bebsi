@@ -22,6 +22,7 @@ const state = {
   aiEngine: null,
   aiStatus: null,
   replaceItem: null,
+  editingId: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -80,6 +81,13 @@ function statusLabel(status) {
 
 function todayIso() {
   const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
+function isoDateOnly(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return todayIso();
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0, 10);
 }
@@ -333,12 +341,22 @@ function bind() {
     }
   });
 
+  $("#editSave").addEventListener("click", saveEdit);
+  $("#editCancel").addEventListener("click", closeEdit);
+  $("#editClose").addEventListener("click", closeEdit);
+  $("#editModal").addEventListener("click", (event) => {
+    if (event.target === $("#editModal")) closeEdit();
+  });
+
   $("#photoClose").addEventListener("click", closePhoto);
   $("#photoModal").addEventListener("click", (event) => {
     if (event.target === $("#photoModal")) closePhoto();
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closePhoto();
+    if (event.key === "Escape") {
+      closePhoto();
+      closeEdit();
+    }
   });
 
   document.addEventListener("click", async (event) => {
@@ -411,6 +429,11 @@ async function onStashClick(event) {
   const discovery = target.closest("[data-discovery]");
   if (discovery) {
     await stashDiscovery(discovery.dataset.discovery, discovery.dataset.kind);
+    return;
+  }
+  const edit = target.closest("[data-edit-stash]");
+  if (edit) {
+    openEdit(edit.dataset.editStash);
     return;
   }
   const find = target.closest("[data-find-parts]");
@@ -900,6 +923,7 @@ function stashItemCard(item) {
                <button class="ghost mini" data-mark-replaced="${esc(item.id)}">Mark replaced</button>`
             : ""
         }
+        <button class="ghost mini" data-edit-stash="${esc(item.id)}">Edit</button>
         <button class="ghost mini" data-remove-stash="${esc(item.id)}">${item.status === "stashed" ? "Remove" : "Delete"}</button>
       </div>
     </article>`;
@@ -1036,6 +1060,75 @@ function renderReplaceTarget() {
       <button class="ghost mini" data-clear-target="1">Clear</button>
     </div>`;
   el.classList.remove("hidden");
+}
+
+function openEdit(id) {
+  const item = state.stash.find((i) => i.id === id);
+  if (!item) return;
+  state.editingId = id;
+  $("#editTitle").value = item.title;
+  $("#editCategory").value = item.category;
+  if (!$("#editCategory").value) {
+    const opt = document.createElement("option");
+    opt.value = item.category;
+    opt.textContent = item.category;
+    $("#editCategory").appendChild(opt);
+    $("#editCategory").value = item.category;
+  }
+  $("#editDetail").value = item.detail;
+  $("#editQty").value = item.quantity;
+  $("#editDate").value = isoDateOnly(item.createdAt);
+  $("#editNotes").value = item.notes;
+  $("#editMarketWrap").classList.toggle("hidden", item.kind !== "replace");
+  $("#editMarketCategory").value = item.marketCategory ?? "";
+  $("#editMeta").textContent = `${item.kind === "recycle" ? "Recycle" : "Replace"} · ${sourceLabel(item.source)} · ${statusLabel(item.status)}`;
+  $("#editModal").classList.remove("hidden");
+  $("#editTitle").focus();
+}
+
+function closeEdit() {
+  state.editingId = null;
+  $("#editModal").classList.add("hidden");
+}
+
+async function saveEdit() {
+  const id = state.editingId;
+  const existing = state.stash.find((i) => i.id === id);
+  if (!id || !existing) return;
+  const title = $("#editTitle").value.trim();
+  if (!title) {
+    toast("A title is required.", "error");
+    return;
+  }
+  const category = $("#editCategory").value;
+  const marketCats = ["ram", "ssd", "hdd", "battery", "charger", "cooling", "gpu", "laptop", "desktop"];
+  const selectedMarket = $("#editMarketCategory").value;
+  const marketCategory = existing.kind === "replace" ? selectedMarket || (marketCats.includes(category) ? category : null) : null;
+  const addedDate = $("#editDate").value;
+  const patch = {
+    title,
+    category,
+    detail: $("#editDetail").value,
+    quantity: Number($("#editQty").value) || 1,
+    notes: $("#editNotes").value,
+    marketCategory,
+    ...(addedDate && addedDate !== isoDateOnly(existing.createdAt) ? { createdAt: addedDate } : {}),
+    ...(category !== existing.category ? { requirements: null } : {}),
+  };
+  try {
+    const updated = await call(api.updateStash(id, patch));
+    if (state.replaceItem?.id === id && updated) {
+      state.replaceItem = updated;
+      state.market = null;
+      state.marketKey = null;
+    }
+    closeEdit();
+    await refreshStash();
+    if (state.replaceItem?.id === id && state.tab === "replace") await loadMarket(true);
+    toast("Item updated.");
+  } catch (err) {
+    toast(err.message, "error");
+  }
 }
 
 /* ---------------- market ---------------- */
