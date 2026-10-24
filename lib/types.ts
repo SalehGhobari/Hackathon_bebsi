@@ -192,6 +192,7 @@ export type RawListing = {
   oqCategory: string;
   page: string;
   capturedAt: string;
+  imageUrl?: string | null;
 };
 
 export type ParsedListing = RawListing & {
@@ -214,7 +215,30 @@ export type CompatResult = {
   reasons: string[];
 };
 
-export type MarketListing = ParsedListing & { compatibility: CompatResult };
+export type PhotoSpecs = {
+  category: MarketCategory | null;
+  capacityGb: number | null;
+  ramGen: string | null;
+  formFactor: string | null;
+  bus: string | null;
+  watts: number | null;
+  brand: string | null;
+};
+
+export type PhotoRead = {
+  listingId: string;
+  imageUrl: string;
+  text: string;
+  confidence: number;
+  engine: string;
+  specs: PhotoSpecs;
+  filled: string[];
+  conflicts: { field: string; title: string; photo: string }[];
+  createdAt: string;
+  note?: string;
+};
+
+export type MarketListing = ParsedListing & { compatibility: CompatResult; photo?: PhotoRead | null };
 
 export type MarketBucket = {
   key: string;

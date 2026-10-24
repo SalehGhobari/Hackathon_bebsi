@@ -2,6 +2,7 @@ import type {
   DeviceRequirements,
   MarketResponse,
   ParsedListing,
+  PhotoRead,
   RawListing,
 } from "../types";
 import { bucketize } from "./aggregate";
@@ -16,11 +17,28 @@ export function buildMarket(
   updatedAt: string | null,
   sources: string[],
   requirements: DeviceRequirements | null,
+  photos: Record<string, PhotoRead> = {},
 ): MarketResponse {
-  const parsed: ParsedListing[] = flagOutliers(raw.map(parseListing));
+  // OCR text is only an aid: it augments the seller's words, never replaces them.
+  // Parse with the extra text, but keep the seller's title for display.
+  const originalTitle = new Map(raw.map((listing) => [listing.id, listing.title]));
+  const enriched = raw.map((listing) => {
+    const photo = photos[listing.id];
+    if (!photo || !photo.text) return { listing, photo: null };
+    return { listing: { ...listing, title: `${listing.title} ${photo.text}` }, photo };
+  });
+
+  const parsed: ParsedListing[] = flagOutliers(enriched.map(({ listing }) => parseListing(listing)));
+
+  const byId = new Map(enriched.map(({ listing, photo }) => [listing.id, photo]));
 
   const listings = parsed
-    .map((listing) => ({ ...listing, compatibility: checkCompatibility(listing, requirements) }))
+    .map((listing) => ({
+      ...listing,
+      title: originalTitle.get(listing.id) ?? listing.title,
+      compatibility: checkCompatibility(listing, requirements),
+      photo: byId.get(listing.id) ?? null,
+    }))
     .sort((a, b) => a.category.localeCompare(b.category) || a.priceJod - b.priceJod);
 
   return {

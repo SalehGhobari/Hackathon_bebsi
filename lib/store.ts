@@ -10,6 +10,8 @@ import { advise, type Advice } from "./advisor";
 import { buildPassport } from "./passport";
 import { mergeMaterials } from "./green";
 import { buildMarket, fetchMarketListings, requirementsFrom } from "./market";
+import { ocrImage } from "./market/ocr";
+import { parseListing } from "./market/parse";
 import type {
   ActionRecord,
   Device,
@@ -18,6 +20,8 @@ import type {
   MarketResponse,
   MaterialAmount,
   Passport,
+  PhotoRead,
+  PhotoSpecs,
   PriceEntry,
   RawListing,
   Recycler,
@@ -64,6 +68,8 @@ export class Store {
   private data: Data;
   private marketFile: string;
   private marketData: MarketFile;
+  private ocrFile: string;
+  private ocrData: Record<string, PhotoRead>;
 
   constructor(private dir: string) {
     fs.mkdirSync(dir, { recursive: true });
@@ -72,7 +78,81 @@ export class Store {
     this.data = this.load();
     this.syncSeedData();
     this.marketData = this.loadMarket();
+    this.ocrFile = path.join(dir, "market-ocr.json");
+    this.ocrData = this.loadOcr();
     this.save();
+  }
+
+  private loadOcr(): Record<string, PhotoRead> {
+    try {
+      if (fs.existsSync(this.ocrFile)) {
+        return JSON.parse(fs.readFileSync(this.ocrFile, "utf8")) as Record<string, PhotoRead>;
+      }
+    } catch {
+      /* ignore a corrupt cache: OCR can be re-run */
+    }
+    return {};
+  }
+
+  private saveOcr() {
+    const tmp = `${this.ocrFile}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(this.ocrData), { mode: 0o600 });
+    fs.renameSync(tmp, this.ocrFile);
+  }
+
+  /**
+   * Read the seller's photo locally. OCR augments the title, it never replaces it:
+   * values are stored separately and conflicts are surfaced to the UI.
+   */
+  async readPhoto(listingId: string): Promise<PhotoRead> {
+    const raw = this.marketData.listings.find((l) => l.id === listingId);
+    if (!raw) throw new Error("Listing not found in the local snapshot.");
+    if (!raw.imageUrl) throw new Error("This listing has no photo.");
+
+    const ocr = await ocrImage(raw.imageUrl);
+    if (!ocr.ok) throw new Error(ocr.note ?? "Could not read this photo.");
+
+    const base = parseListing(raw);
+    const merged = parseListing({ ...raw, title: `${raw.title} ${ocr.text}` });
+    const fields = ["capacityGb", "ramGen", "formFactor", "bus", "watts", "brand"] as const;
+    const filled: string[] = [];
+    const conflicts: PhotoRead["conflicts"] = [];
+
+    for (const field of fields) {
+      const fromTitle = base[field];
+      const fromPhoto = merged[field];
+      if (fromTitle === null && fromPhoto !== null) filled.push(field);
+      else if (fromTitle !== null && fromPhoto !== null && String(fromTitle).toUpperCase() !== String(fromPhoto).toUpperCase()) {
+        conflicts.push({ field, title: String(fromTitle), photo: String(fromPhoto) });
+      }
+    }
+
+    const specs: PhotoSpecs = {
+      category: merged.category,
+      capacityGb: merged.capacityGb,
+      ramGen: merged.ramGen,
+      formFactor: merged.formFactor,
+      bus: merged.bus,
+      watts: merged.watts,
+      brand: merged.brand,
+    };
+
+    const photo: PhotoRead = {
+      listingId,
+      imageUrl: raw.imageUrl,
+      text: ocr.text,
+      confidence: ocr.confidence,
+      engine: ocr.engine,
+      specs,
+      filled,
+      conflicts,
+      createdAt: new Date().toISOString(),
+      note: ocr.note,
+    };
+
+    this.ocrData[listingId] = photo;
+    this.saveOcr();
+    return photo;
   }
 
   private loadMarket(): MarketFile {
@@ -107,7 +187,13 @@ export class Store {
   market(deviceId?: string): MarketResponse {
     const view = deviceId ? this.view(deviceId) : null;
     const requirements = view ? requirementsFrom(view.device, view.diagnostic) : null;
-    return buildMarket(this.marketData.listings, this.marketData.updatedAt, this.marketData.sources, requirements);
+    return buildMarket(
+      this.marketData.listings,
+      this.marketData.updatedAt,
+      this.marketData.sources,
+      requirements,
+      this.ocrData,
+    );
   }
 
   /** Explicit, user-initiated refresh. Merges new listings; keeps old ones on failure. */

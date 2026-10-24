@@ -11,6 +11,7 @@ const state = {
   recyclers: [],
   market: null,
   marketFor: null,
+  ocrStatus: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -75,6 +76,11 @@ async function boot() {
 
     state.prices = await call(api.prices());
     state.recyclers = await call(api.recyclers());
+    try {
+      state.ocrStatus = await call(api.ocrStatus());
+    } catch {
+      state.ocrStatus = null;
+    }
     state.ledger = await call(api.ledger());
     renderPrices();
     renderRecyclers();
@@ -107,6 +113,23 @@ function bind() {
   $("#deviceList").addEventListener("click", (event) => {
     const btn = event.target.closest(".device");
     if (btn) loadDevice(btn.dataset.id);
+  });
+
+  $("#marketList").addEventListener("click", async (event) => {
+    const btn = event.target.closest("[data-read-photo]");
+    if (!btn || !state.view) return;
+    btn.disabled = true;
+    btn.textContent = "Reading…";
+    try {
+      await call(api.readPhoto(btn.dataset.readPhoto));
+      state.market = await call(api.market(state.view.device.id));
+      renderMarket();
+      toast("Photo read locally. Check any conflicts with the seller's text.");
+    } catch (err) {
+      toast(err.message, "error");
+      btn.disabled = false;
+      btn.textContent = "Read photo";
+    }
   });
 
   $("#remedyList").addEventListener("click", async (event) => {
@@ -636,6 +659,7 @@ function normText(input) {
     .replace(/ى/g, "ي")
     .replace(/ة/g, "ه")
     .replace(/[٠-٩]/g, (d) => String(digits.indexOf(d)))
+    .replace(/[\u200b-\u200f\u202a-\u202e\ufeff]/g, "")
     .toLowerCase();
 }
 
@@ -667,24 +691,59 @@ function listingRow(l) {
   const compatLabel =
     l.compatibility.status === "compatible" ? "Compatible" : l.compatibility.status === "incompatible" ? "Incompatible" : "Check specs";
 
+  const photoChips = l.photo
+    ? [
+        l.photo.specs.ramGen,
+        l.photo.specs.capacityGb ? `${l.photo.specs.capacityGb} GB` : null,
+        l.photo.specs.formFactor,
+        l.photo.specs.bus,
+        l.photo.specs.watts ? `${l.photo.specs.watts} W` : null,
+      ].filter(Boolean)
+    : [];
+
   return `
     <div class="listing">
       <div class="listing-main">
         <div class="listing-title ${rtl ? "rtl" : ""}" ${rtl ? 'lang="ar" dir="rtl"' : ""}>${esc(l.title)}</div>
         <div class="chips">
           ${l.tags.map((t) => `<span class="chip">${esc(t)}</span>`).join("")}
+          ${photoChips.map((t) => `<span class="chip photo">photo: ${esc(t)}</span>`).join("")}
           ${l.outlier ? '<span class="badge red">outlier</span>' : ""}
+          ${l.photo && l.photo.conflicts.length ? '<span class="badge red">photo conflict</span>' : ""}
         </div>
         <div class="muted small">${esc(l.area || "Jordan")} · ${esc(l.condition)} · ${esc(l.confidence)} confidence</div>
         <details>
           <summary>Why: ${compatLabel}</summary>
           <ul>${l.compatibility.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
         </details>
+        ${
+          l.photo
+            ? `<details>
+                 <summary>Read from photo · ${l.photo.confidence ? `${l.photo.confidence}% confidence` : "confidence unavailable"}</summary>
+                 <div class="ocr-text">${esc(l.photo.text)}</div>
+                 ${
+                   l.photo.conflicts.length
+                     ? `<ul>${l.photo.conflicts
+                         .map(
+                           (c) =>
+                             `<li><strong>Conflict:</strong> seller says “${esc(c.title)}”, photo says “${esc(c.photo)}”</li>`,
+                         )
+                         .join("")}</ul>`
+                     : ""
+                 }
+               </details>`
+            : ""
+        }
       </div>
       <div class="listing-side">
         <div class="price">${money(l.priceJod)} <small>JOD</small></div>
         <span class="badge ${compatClass}">${compatLabel}</span>
         <a href="${esc(l.url)}" target="_blank" rel="noreferrer">Open listing</a>
+        ${
+          l.imageUrl && state.ocrStatus?.available
+            ? `<button class="ghost mini" data-read-photo="${esc(l.id)}" ${l.photo ? "disabled" : ""}>${l.photo ? "Photo read" : "Read photo"}</button>`
+            : ""
+        }
       </div>
     </div>`;
 }
@@ -695,6 +754,13 @@ function renderMarket() {
 
   const compatCount = market.listings.filter((l) => l.compatibility.status === "compatible").length;
   $("#marketMeta").textContent = `${market.count} listings · ${compatCount} compatible · captured ${market.updatedAt ?? "unknown"} · ${market.outliers} outliers flagged`;
+
+  const ocrNote = $("#ocrNote");
+  if (ocrNote) {
+    ocrNote.textContent = state.ocrStatus?.available
+      ? `Photo OCR ready — ${state.ocrStatus.note} Reading a photo downloads that public image once.`
+      : `Photo OCR unavailable — ${state.ocrStatus?.note ?? "Tesseract not detected."}`;
+  }
   const req = market.requirements;
   $("#marketCompat").textContent = req
     ? `Compatibility target: ${[req.ramGen, req.ramForm, req.storageBus, req.storageForm].filter(Boolean).join(" · ") || "not enough sensor data"} — checks use only what the seller wrote.`
@@ -708,7 +774,7 @@ function renderMarket() {
   const partsOnly = $("#mPartsOnly").checked;
   const showOutliers = $("#mOutliers").checked;
 
-  const filtered = market.listings
+  const matching = market.listings
     .filter((l) => {
       if (!showOutliers && l.outlier) return false;
       if (partsOnly) {
@@ -718,7 +784,6 @@ function renderMarket() {
       if (category !== "all" && l.category !== category) return false;
       if (condition !== "all" && l.condition !== condition) return false;
       if (l.priceJod > max) return false;
-      if (hideIncompatible && l.compatibility.status === "incompatible") return false;
       if (q && !normText(`${l.title} ${l.tags.join(" ")} ${l.oqCategory} ${l.brand ?? ""}`).includes(q)) return false;
       return true;
     })
@@ -731,15 +796,29 @@ function renderMarket() {
       );
     });
 
+  const hiddenIncompatible = hideIncompatible
+    ? matching.filter((l) => l.compatibility.status === "incompatible").length
+    : 0;
+  const filtered = hideIncompatible
+    ? matching.filter((l) => l.compatibility.status !== "incompatible")
+    : matching;
+
   const buckets = market.buckets.filter((b) => category === "all" || b.category === category).slice(0, 8);
   $("#marketBuckets").innerHTML = buckets.length
     ? buckets.map(bucketCard).join("")
     : '<p class="muted small">No price buckets for this filter yet.</p>';
 
-  $("#mCount").textContent = `${filtered.length} shown`;
+  $("#mCount").textContent = hiddenIncompatible
+    ? `${filtered.length} shown · ${hiddenIncompatible} hidden as incompatible`
+    : `${filtered.length} shown`;
+
   $("#marketList").innerHTML = filtered.length
     ? filtered.slice(0, 150).map(listingRow).join("")
-    : '<p class="muted small">No listings match these filters.</p>';
+    : `<p class="muted small">${
+        hiddenIncompatible
+          ? `No compatible listings match. ${hiddenIncompatible} matching listing(s) are incompatible with this machine — untick “Hide incompatible” to see them.`
+          : "No listings match these filters."
+      }</p>`;
 }
 
 async function generatePassport() {

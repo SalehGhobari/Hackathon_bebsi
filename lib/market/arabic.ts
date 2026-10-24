@@ -17,7 +17,7 @@ export function normalizeArabic(input: string): string {
     .replace(/ئ/g, "ي")
     .replace(/[٠-٩]/g, (d) => String(ARABIC_DIGITS.indexOf(d)))
     .replace(/[۰-۹]/g, (d) => String(PERSIAN_DIGITS.indexOf(d)))
-    .replace(/\u200f|\u200e/g, "")
+    .replace(/[\u200b-\u200f\u202a-\u202e\ufeff]/g, "")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();

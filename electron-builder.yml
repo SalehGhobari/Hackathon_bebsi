@@ -7,6 +7,9 @@ files:
   - dist/electron/**/*
   - ui/**/*
   - package.json
+extraResources:
+  - from: data/tessdata
+    to: tessdata
 asar: true
 linux:
   target:
