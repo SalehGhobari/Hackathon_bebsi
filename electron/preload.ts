@@ -11,6 +11,7 @@ const api = {
   removeAction: (id: string) => invoke("actions:remove", { id }),
   ledger: () => invoke("ledger"),
   prices: () => invoke("prices"),
+  recyclers: () => invoke("recyclers"),
   recordWipe: (deviceId: string, method: string, disk: string) =>
     invoke("wipe:add", { deviceId, method, disk }),
   passport: (deviceId: string) => invoke("passport", { deviceId }),

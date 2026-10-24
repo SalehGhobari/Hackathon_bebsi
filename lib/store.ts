@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import seedPrices from "../data/prices.json";
+import recyclerData from "../data/recyclers.json";
 import { detectDevice } from "./detect";
 import { assess } from "./health";
 import { advise, type Advice } from "./advisor";
@@ -15,8 +16,11 @@ import type {
   MaterialAmount,
   Passport,
   PriceEntry,
+  Recycler,
   WipeRecord,
 } from "./types";
+
+const SEED_VERSION = 2;
 
 type Data = {
   devices: Device[];
@@ -24,9 +28,10 @@ type Data = {
   actions: ActionRecord[];
   prices: PriceEntry[];
   wipes: WipeRecord[];
+  seedVersion?: number;
 };
 
-const EMPTY: Data = { devices: [], diagnostics: [], actions: [], prices: [], wipes: [] };
+const EMPTY: Data = { devices: [], diagnostics: [], actions: [], prices: [], wipes: [], seedVersion: SEED_VERSION };
 
 export type DeviceView = {
   device: Device;
@@ -46,7 +51,7 @@ export class Store {
     fs.mkdirSync(dir, { recursive: true });
     this.file = path.join(dir, "fahas-data.json");
     this.data = this.load();
-    this.mergeSeedPrices();
+    this.syncSeedData();
     this.save();
   }
 
@@ -60,6 +65,7 @@ export class Store {
         actions: parsed.actions ?? [],
         prices: parsed.prices ?? [],
         wipes: parsed.wipes ?? [],
+        seedVersion: parsed.seedVersion ?? 0,
       };
     } catch {
       try {
@@ -71,11 +77,18 @@ export class Store {
     }
   }
 
-  private mergeSeedPrices() {
-    const known = new Set(this.data.prices.map((p) => p.id));
-    for (const p of seedPrices as PriceEntry[]) {
-      if (!known.has(p.id)) this.data.prices.push(p);
-    }
+  /**
+   * Real, dated price data ships with the app. When the dataset version changes,
+   * replace the price book so stale seeded rows never masquerade as current quotes.
+   */
+  private syncSeedData() {
+    if (this.data.seedVersion === SEED_VERSION) return;
+    this.data.prices = structuredClone(seedPrices as PriceEntry[]);
+    this.data.seedVersion = SEED_VERSION;
+  }
+
+  recyclers(): Recycler[] {
+    return recyclerData as Recycler[];
   }
 
   private save() {

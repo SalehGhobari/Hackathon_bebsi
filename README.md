@@ -52,7 +52,7 @@ costs in Amman, or what happens to the old one. Fahas is built around the decisi
 | Windows detection | Implemented via PowerShell/CIM + storage reliability counters. Untested on real hardware — needs a Windows laptop to verify |
 | Health scoring + findings | Working |
 | Remedy engine (cost/year, CO₂e, materials) | Working |
-| Jordanian price book | Seeded with **indicative ranges** — must be replaced with surveyed prices |
+| Jordanian price book | Real, dated prices from GTS (retail) and OpenSooq (used, asking), captured 2026-10-24. Labour remains an estimate |
 | Impact ledger | Working (local JSON) |
 | Second-life passport + QR | Working (signed hash, offline verification) |
 | Wipe attestation | Working — records the method as an **operator attestation**, not proof of erasure |
@@ -139,27 +139,69 @@ Key design rules:
 - The renderer has no network access (`connect-src 'none'` in the CSP) and no Node access.
 - The wipe record is an **attestation by the operator**, not a cryptographic proof of erasure. The UI says so.
 
-## The price book
+## The price book (real data)
 
-`data/prices.json` — one row per part, labour or device class:
+`data/prices.json` — one row per part, labour or device class. Every row is either **observed** or explicitly marked
+`estimate`. There is no invented filler.
 
 ```json
 {
-  "id": "p-ssd-nvme-512",
+  "id": "p-ssd-nvme-500-retail",
   "category": "ssd",
-  "item": "NVMe SSD 512 GB",
-  "spec": "M.2 2280, PCIe 3.0/4.0",
-  "low": 35,
-  "high": 50,
+  "item": "Kingston NV3 500 GB NVMe SSD",
+  "spec": "M.2 2280, PCIe 4.0",
+  "low": 89,
+  "high": 89,
   "currency": "JOD",
+  "unit": "each",
+  "kind": "retail",
+  "vendor": "GTS (gts.jo)",
   "city": "Amman",
-  "source": "Indicative local shop survey (seed)",
-  "sourceDate": "2026-10"
+  "source": "GTS product page",
+  "sourceDate": "2026-10-24",
+  "url": "https://gts.jo/..."
 }
 ```
 
-The seed values are **indicative, not surveyed**. Replacing them with real quotes (with date and shop) is the
-highest-value contribution anyone can make. The advisor recomputes instantly because advice is never stored.
+Where the numbers come from (captured **2026-10-24**, manually, from public pages):
+
+| Kind | Source | Examples |
+|---|---|---|
+| `retail` | [GTS](https://gts.jo) product pages, JOD | NVMe 500 GB **89**, NVMe 1 TB **135**, SATA 480 GB **69**, DDR4 16 GB SO-DIMM **119**, DDR5 16 GB SO-DIMM **249**, thermal paste **9–14** |
+| `used` | [OpenSooq Jordan](https://jo.opensooq.com/en) asking prices | laptop battery **12–35**, 65 W charger **5–20**, 16 GB DDR4 SO-DIMM **45**, used laptop/desktop **60–200** |
+| `policy` | [E-Tafkeek](https://e-tafkeek.com/) | MOENV disposal reference **100 JOD/ton** (0.1 JOD/kg) |
+| `estimate` | not surveyed yet | shop diagnosis/installation labour **5–15 / 5–10** |
+
+Honest limits:
+
+- GTS prices are **listed prices**; tax and delivery were not verified.
+- OpenSooq prices are **asking prices** from classifieds, not warranty-backed shop prices, and individual listings
+  change daily. The category URL is stored, not a per-listing snapshot.
+- The two labour rows are estimates. The UI marks them `estimate`, and the advisor's cost-per-year includes them —
+  so replace them with real quotes before quoting total cost.
+- One laptop battery row exists (aftermarket/used, 12–35 JOD). There is **no** invented "OEM battery" price.
+
+The dataset is versioned (`SEED_VERSION` in `lib/store.ts`); when the version changes, the app replaces the stored
+price book so stale rows never masquerade as current quotes.
+
+## Recycling partners
+
+`data/recyclers.json` holds real drop-off data, shown in the **Recycle** tab.
+
+**E-Tafkeek — TAFKEEK e-Waste Recycling** (Amman)
+
+- Address: Mecca Street, Al Husseini complex 152, 4th floor, office 402
+- Phones: +962 6 5511533 · +962 6 5511532 · +962 777194940
+- Email: sudki2023@e-tafkeek.com
+- Hours: Saturday–Thursday, 9:00 AM – 4:00 PM
+- Accepts: phones, TVs, computers/laptops, motherboards and PC cards, PCB boards, communications devices, other
+  electrical waste
+- Also: resells refurbished machines and usable parts (HDD, optical drives, RAM), supplies sorted material to
+  smelters, exports non-recycled boards, and supports the MOENV **100 JOD/ton** legal-disposal policy
+- Source: <https://e-tafkeek.com/> · contact: <https://e-tafkeek.com/contactus/>
+
+The app tells the user to call first and ask three things: what they accept, whether the MOENV fee applies at their
+quantity, and what happens to data-bearing drives. The wipe attestation exists for exactly that conversation.
 
 ## Demo mode
 

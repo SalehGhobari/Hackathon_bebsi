@@ -75,6 +75,7 @@ function registerIpc() {
   handle("actions:remove", (payload) => store.removeAction((payload as { id: string }).id));
   handle("ledger", () => store.ledger());
   handle("prices", () => store.prices());
+  handle("recyclers", () => store.recyclers());
 
   handle("wipe:add", (payload) => {
     const { deviceId, method, disk } = payload as { deviceId: string; method: string; disk: string };

@@ -1,0 +1,28 @@
+[
+  {
+    "id": "e-tafkeek",
+    "name": "E-Tafkeek — TAFKEEK e-Waste Recycling",
+    "city": "Amman",
+    "address": "Mecca Street, Al Husseini complex 152, 4th floor, office 402",
+    "phones": ["+962 6 5511533", "+962 6 5511532", "+962 777194940"],
+    "email": "sudki2023@e-tafkeek.com",
+    "hours": "Saturday – Thursday, 9:00 AM – 4:00 PM",
+    "accepts": [
+      "Mobile phones",
+      "TVs",
+      "Computers and laptops",
+      "Motherboards, PC cards and PCB boards",
+      "Communications devices",
+      "Other electrical and electronic waste"
+    ],
+    "services": [
+      "Refurbished computers and usable parts (hard drives, optical drives, RAM)",
+      "Sorted materials supplied to smelters",
+      "Non-recycled boards (motherboards, PC cards, PCB) for export",
+      "Legal disposal supporting the MOENV 100 JOD/ton fee policy"
+    ],
+    "sourceUrl": "https://e-tafkeek.com/",
+    "contactUrl": "https://e-tafkeek.com/contactus/",
+    "notes": "Call before travelling. Ask three things: what they will accept, whether they charge the MOENV disposal fee at your quantity, and what happens to data-bearing drives. They also resell usable parts, so a working SSD or RAM stick may have value."
+  }
+]

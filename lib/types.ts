@@ -147,6 +147,8 @@ export type Diagnostic = {
   demo?: boolean;
 };
 
+export type PriceKind = "retail" | "used" | "estimate" | "policy";
+
 export type PriceEntry = {
   id: string;
   category: string;
@@ -155,10 +157,29 @@ export type PriceEntry = {
   low: number;
   high: number;
   currency: string;
+  unit?: string;
+  kind: PriceKind;
+  vendor?: string;
   city: string;
   source: string;
   sourceDate: string;
+  url?: string;
   notes?: string;
+};
+
+export type Recycler = {
+  id: string;
+  name: string;
+  city: string;
+  address: string;
+  phones: string[];
+  email: string;
+  hours: string;
+  accepts: string[];
+  services: string[];
+  sourceUrl: string;
+  contactUrl: string;
+  notes: string;
 };
 
 export type Device = {

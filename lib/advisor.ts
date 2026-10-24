@@ -72,9 +72,17 @@ function build(input: RemedyInput): Remedy {
     materials: impact.materials,
     safety: input.safety,
     confidence: input.confidence,
-    priceRefs: [input.part, input.labor].filter(Boolean).map(
-      (p) => `${(p as PriceEntry).item} — ${(p as PriceEntry).low}–${(p as PriceEntry).high} ${(p as PriceEntry).currency} · ${(p as PriceEntry).city}, ${(p as PriceEntry).sourceDate} · ${(p as PriceEntry).source}`,
-    ),
+    priceRefs: [
+      ...[input.part, input.labor]
+        .filter(Boolean)
+        .map(
+          (p) =>
+            `${(p as PriceEntry).item} — ${(p as PriceEntry).low}–${(p as PriceEntry).high} ${(p as PriceEntry).currency} · ${(p as PriceEntry).kind} · ${(p as PriceEntry).vendor ?? (p as PriceEntry).source} · ${(p as PriceEntry).sourceDate}`,
+        ),
+      ...(!input.part && input.action !== "service" && input.action !== "recycle" && input.action !== "replace-device"
+        ? ["No surveyed price for this part yet — add a real quote in the Price book."]
+        : []),
+    ],
     warnings: input.warnings,
     steps: input.steps,
   };
@@ -88,8 +96,17 @@ export type AdvisorInput = {
 
 function ssdFor(d: AdvisorInput): PriceEntry | null {
   const nvme = d.disks.some((disk) => /nvme/i.test(disk.transport));
-  if (nvme) return pick("ssd", (p) => /nvme/i.test(p.item) && /512/i.test(p.item)) ?? pick("ssd", (p) => /nvme/i.test(p.item));
-  return pick("ssd", (p) => /sata/i.test(p.item)) ?? pick("ssd");
+  if (nvme) {
+    return (
+      pick("ssd", (p) => /nvme/i.test(p.item) && /(500|512)/.test(p.item) && p.kind === "retail") ??
+      pick("ssd", (p) => /nvme/i.test(p.item))
+    );
+  }
+  return (
+    pick("ssd", (p) => /sata/i.test(p.item) && /480/.test(p.item) && p.kind === "retail") ??
+    pick("ssd", (p) => /sata/i.test(p.item)) ??
+    pick("ssd")
+  );
 }
 
 function ramFor(d: AdvisorInput): PriceEntry | null {
@@ -296,14 +313,16 @@ export function advise(d: AdvisorInput, health: HealthReport, faults: Fault[]): 
   }
 
   // Recycling is always shown, as the last resort.
-  const scrap = pick("recycle");
+  const disposal = pick("disposal");
+  const mass = DEVICE_MASS_KG[cls];
+  const disposalFee = disposal ? Math.round(disposal.low * mass * 10) / 10 : null;
   remedies.push(
     build({
       id: "recycle",
       action: "recycle",
       hierarchy: 4,
       title: "Recycle it properly",
-      description: `Last resort, and only after the repairs above have been ruled out. A collector may pay roughly ${scrap?.low ?? 0}–${scrap?.high ?? 1} JOD per kg of boards; batteries need separate handling.`,
+      description: `Last resort, and only after the repairs above have been ruled out. E-Tafkeek in Amman accepts computers, boards and batteries, and also buys usable parts. The MOENV reference rate is 100 JOD/ton${disposalFee !== null ? ` — about ${disposalFee} JOD for a ${mass} kg device` : ""}; confirm what applies to a household drop-off.`,
       cls,
       part: null,
       years: 0,
@@ -314,6 +333,7 @@ export function advise(d: AdvisorInput, health: HealthReport, faults: Fault[]): 
         "Back up and wipe the drive before handing the device over.",
         "Never put lithium batteries in household waste.",
         "Informal burning of cables recovers copper at a serious health cost — use a proper collection point.",
+        "Call E-Tafkeek first: ask what they accept and whether the MOENV fee applies to your quantity.",
       ],
       steps: [
         "Back up your data, then wipe the drive and keep the certificate.",

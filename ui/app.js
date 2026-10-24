@@ -8,6 +8,7 @@ const state = {
   info: null,
   passport: null,
   tab: "overview",
+  recyclers: [],
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -71,8 +72,10 @@ async function boot() {
     $("#infoLine").style.whiteSpace = "pre-line";
 
     state.prices = await call(api.prices());
+    state.recyclers = await call(api.recyclers());
     state.ledger = await call(api.ledger());
     renderPrices();
+    renderRecyclers();
     renderLedger();
 
     await refreshDevices();
@@ -379,7 +382,13 @@ function renderAdvice() {
         </div>
         <p class="desc">${esc(r.description)}</p>
         <div class="metrics">
-          <div class="metric"><div class="k">Part</div><div class="v">${range(r.costLow, r.costHigh, "JOD")}</div></div>
+          <div class="metric"><div class="k">Part</div><div class="v">${
+            r.costLow === 0 && r.costHigh === 0
+              ? ["service", "recycle", "replace-device"].includes(r.action)
+                ? "no part"
+                : "not surveyed"
+              : range(r.costLow, r.costHigh, "JOD")
+          }</div></div>
           <div class="metric"><div class="k">Labour</div><div class="v">${range(r.laborLow, r.laborHigh, "JOD")}</div></div>
           <div class="metric"><div class="k">Cost / year</div><div class="v">${r.costPerYear ? money(r.costPerYear) + " <small>JOD</small>" : "—"}</div></div>
           <div class="metric"><div class="k">${r.yearsGained ? "Added life" : "Impact"}</div><div class="v">${r.yearsGained ? r.yearsGained + " <small>years</small>" : (r.kgDiverted ? money(r.kgDiverted) + " <small>kg</small>" : "—")}</div></div>
@@ -455,15 +464,59 @@ function renderLedger() {
 
 function renderPrices() {
   $("#priceTable").innerHTML = state.prices
-    .map(
-      (p) => `
+    .map((p) => {
+      const unit = p.unit && p.unit !== "each" ? ` / ${esc(p.unit)}` : "";
+      const kindClass = p.kind === "retail" ? "mint" : p.kind === "used" ? "sand" : p.kind === "estimate" ? "red" : "blue";
+      const label = p.vendor || p.source;
+      const source = p.url
+        ? `<a href="${esc(p.url)}" target="_blank" rel="noreferrer">${esc(label)}</a>`
+        : esc(label);
+      return `
       <tr>
         <td>${esc(p.item)}</td>
         <td>${esc(p.spec)}</td>
-        <td>${range(p.low, p.high, p.currency)}</td>
-        <td>${esc(p.city)}</td>
-        <td>${esc(p.source)}<br>${esc(p.sourceDate)}</td>
-      </tr>`,
+        <td>${range(p.low, p.high, p.currency)}${unit}</td>
+        <td><span class="badge ${kindClass}">${esc(p.kind)}</span></td>
+        <td>${source}<br>${esc(p.sourceDate)}</td>
+      </tr>`;
+    })
+    .join("");
+}
+
+function renderRecyclers() {
+  const list = $("#recyclerList");
+  if (!list) return;
+  list.innerHTML = state.recyclers
+    .map(
+      (r) => `
+      <article class="remedy recommended">
+        <div class="remedy-head">
+          <div>
+            <div class="badges">
+              <span class="badge mint">Verified contact</span>
+              <span class="badge">${esc(r.city)}</span>
+              <span class="badge blue">E-waste recycler</span>
+            </div>
+            <h3>${esc(r.name)}</h3>
+          </div>
+        </div>
+        <p class="desc">${esc(r.address)}<br>${esc(r.hours)}</p>
+        <div class="metrics" style="grid-template-columns:1fr 1fr">
+          <div class="metric"><div class="k">Phone</div><div class="v" style="font-size:12.5px">${r.phones.map((p) => esc(p)).join("<br>")}</div></div>
+          <div class="metric"><div class="k">Email</div><div class="v" style="font-size:12.5px">${esc(r.email)}</div></div>
+        </div>
+        <div class="k muted small" style="margin-bottom:6px">Accepts</div>
+        <div class="chips">${r.accepts.map((a) => `<span class="chip">${esc(a)}</span>`).join("")}</div>
+        <details>
+          <summary>What they do with it</summary>
+          <ul>${r.services.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>
+        </details>
+        <p class="muted small">${esc(r.notes)}</p>
+        <div class="foot">
+          <span class="muted small">Source: <a href="${esc(r.sourceUrl)}" target="_blank" rel="noreferrer">${esc(r.sourceUrl)}</a></span>
+          <a class="ghost" href="${esc(r.contactUrl)}" target="_blank" rel="noreferrer" style="text-decoration:none">Contact page</a>
+        </div>
+      </article>`,
     )
     .join("");
 }
