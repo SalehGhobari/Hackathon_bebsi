@@ -1,10 +1,11 @@
 # Fahes · فحص
 
-**A local-first hardware advisor for laptops and desktops.** It reads what your machine can report, then advises
-**repair, upgrade, recycle or replace** — priced in Jordanian dinars, measured in years of added life, kilograms
-diverted and CO₂e avoided.
+**A local-first recycle & replace app for laptops, desktops and the devices around them.** Scan this PC, removable
+drives, USB peripherals or the local network, then stash each item for **recycling** or **replacement**. Replacement
+items search the OpenSooq index for compatible parts; recycling items become a photo-backed PDF manifest for a real
+e-waste partner.
 
-No account. No server. No network calls. Everything is stored on the machine it runs on.
+No account. No server. No upload. Everything is stored on the machine it runs on.
 
 ```bash
 # 1. Go into the project directory first — npm must see package.json.
@@ -29,18 +30,19 @@ powershell -ExecutionPolicy Bypass -File .\run.ps1   # Windows
 
 ## Why
 
-Most diagnostic tools tell you a disk is failing. They do not tell you whether it is worth fixing, what the part
-costs in Amman, or what happens to the old one. Fahes is built around the decision, not the reading:
+Most tools stop at “your disk is failing”. Fahes is built around what happens next:
 
-- **Repair before replace** — ranked by the waste hierarchy (prevent → reuse → repair → recycle → replace), then by
-  cost per year of added life.
-- **Jordanian prices with provenance** — every part range carries a city, a source and a capture date.
-- **Honest about uncertainty** — missing sensors show as `unknown`, never as zero. Health is scored from what was
-  actually measured.
-- **Recycling is the last resort** — and when it is the right answer, the app says what to do with the battery and the
-  data.
+- **Two routes, one stash** — every scanned part or device can be filed under **Recycle** or **Replace**.
+- **Replacement with local prices** — compatible parts are matched against 338 real OpenSooq listings and the
+  Jordanian price book, with the city and capture date attached.
+- **Recycling as a handover document** — attach a photo to each item, generate a manifest PDF with quantities, mass
+  and material estimates, then email it to a verified recycler.
+- **AI fills filters, not facts** — a small local Ollama model turns a sentence into market filters. Compatibility,
+  prices and impact stay deterministic.
+- **Scan beyond this PC** — removable drives and USB peripherals, plus a private-LAN sweep for the old router, printer
+  or NAS you have been meaning to retire.
 
-> Diagnostics for the laptop you have. Decisions for the laptop you keep.
+> Scan it. Stash it. Replace what is worth keeping, recycle what is not.
 
 ---
 
@@ -48,18 +50,21 @@ costs in Amman, or what happens to the old one. Fahes is built around the decisi
 
 | Area | State |
 |---|---|
-| Linux detection (Arch, Mint, generic) | Working — sysfs battery, `lsblk`/sysfs disks, `sensors`/hwmon/thermal zones, DMI |
-| Windows detection | Working — PowerShell/CIM + storage reliability counters. Verified on a Dell Latitude 5511 (Windows 11): battery from `root\wmi`, NVMe bus identified behind Intel RST, ACPI thermal zones |
-| Health scoring + findings | Working |
-| Remedy engine (cost/year, CO₂e, materials) | Working |
-| Jordanian price book | Real, dated prices from GTS (retail) and OpenSooq (used, asking), captured 2026-10-24. Labour remains an estimate |
-| Impact ledger | Working (local JSON) |
+| Local hardware scan (Linux/Windows) | Working — battery, disks, SMART, RAM, thermals, OS |
+| Connected-device scan | Working — removable/USB disks via `lsblk`/CIM, USB peripherals via `lsusb` |
+| LAN scan | Working — private /24 ping sweep + ARP/neighbour table; no port probing |
+| Recycle stash | Working — manual or scanned items, quantities, notes and local photos |
+| Replacement stash | Working — scanned parts or manual entries, AI/keyword market search |
+| Recycling manifest PDF | Working — item photos, quantities, mass/material estimates, recycler details, handover declaration |
+| Email handover | Working — opens the recycler address with a ready message; attach the saved PDF |
+| Jordanian price book | Real, dated prices from GTS (retail) and OpenSooq (used, asking), captured 2026-10-24 |
+| Impact ledger | Working — driven by recycled/replaced stash items |
 | OpenSooq market index | Working — 338 real listings, Arabic parsing, spec buckets, compatibility filter |
-| Listing photo viewer | Working — on-demand fetch, local cache, full-size modal |
-| Arabic mode (RTL) | Working for the UI shell, market, recycling, prices and passport; scan prose still English |
+| AI market search | Working — local Ollama if present; deterministic keyword fallback otherwise |
+| Arabic mode (RTL) | Working for the UI shell, market, recycling, prices and passport; new scan/recycle prose is English |
 | Second-life passport + QR | Working (signed hash, offline verification) |
-| Wipe attestation | Working — records the method as an **operator attestation**, not proof of erasure |
-| Demo mode | Working — simulates wear so a healthy laptop can demo the full advisor |
+| Wipe attestation | Working — operator attestation, not proof of erasure |
+| Demo mode | Working — simulates wear so a healthy laptop can demo the whole flow |
 | AppImage / Windows installer | Config written; needs a build on each OS |
 
 ---
@@ -96,6 +101,7 @@ Checks:
 ```bash
 npm run typecheck    # TypeScript, no emit
 npm run test:scan    # real hardware scan + demo scan + store/passport round-trip (no GUI)
+npm run test:stash   # stash, photo, manifest and ledger round-trip (no GUI)
 ```
 
 ## Package
@@ -117,12 +123,11 @@ window, and `icon.ico` is used by the Windows installer. The in-app copy is `ui/
 
 | Tab | What lives there |
 |---|---|
-| **Overview** | health ring, findings, and collapsed "This machine" / "Sensor notes" |
-| **Fix it** | one recommendation, remedies with local market options, collapsed replacement baseline and decision log |
-| **Market** | search + category chips; extra filters and price ranges are behind folds |
-| **Recycle** | retire-or-repair verdict, per-drive destruction commands, wipe attestation, pickup message, partners |
-| **Impact** | avoided spend, CO₂e, diverted kilograms, recovered materials |
-| **More** | price book and the second-life passport |
+| **Scan** | this PC, connected devices, LAN devices, and a manual add form; every candidate has Recycle and Replace |
+| **Replace** | the replacement stash + the OpenSooq search, filters and compatibility badges |
+| **Recycle** | the recycle stash, per-item photos, recycler choice, manifest PDF and email handover |
+| **Impact** | active stash counts, diverted kilograms, CO₂e avoided and recovered materials |
+| **More** | price book, verified recyclers, second-life passport and data destruction |
 
 Secondary controls sit behind disclosure folds, so the first screen answers one question at a time.
 
@@ -130,25 +135,53 @@ Secondary controls sit behind disclosure folds, so the first screen answers one 
 
 ```
 Electron main process (Node)
-  ├─ lib/detect/linux.ts     /sys, lsblk, smartctl, sensors, hwmon, DMI
-  ├─ lib/detect/windows.ts   one PowerShell/CIM round-trip → JSON
-  ├─ lib/health.ts           component scores, findings, confidence
-  ├─ lib/advisor.ts          remedy ladder + cost/year + impact
-  ├─ lib/green.ts            embodied carbon, materials, impact math
-  ├─ lib/store.ts            local JSON store (mode 0600)
-  └─ lib/passport.ts         hashed, verifiable second-life record
+  ├─ lib/detect/linux.ts      /sys, lsblk, smartctl, sensors, hwmon, DMI
+  ├─ lib/detect/windows.ts    one PowerShell/CIM round-trip → JSON
+  ├─ lib/detect/connected.ts  removable/USB disks and USB peripherals
+  ├─ lib/detect/lan.ts        private /24 ping sweep + ARP/neighbour table
+  ├─ lib/health.ts            health context from the local scan
+  ├─ lib/ai.ts                Ollama → validated market filters + keyword fallback
+  ├─ lib/store.ts             devices, recycle/replace stash, photos, ledger (mode 0600)
+  ├─ electron/recycle-pdf.ts  photo-backed recycling manifest
+  └─ lib/passport.ts          hashed, verifiable second-life record
         ↕ IPC (contextIsolation, no node in renderer)
 Renderer (plain HTML/CSS/JS)
-  └─ ui/                     no frameworks, no network, strict CSP
+  └─ ui/                      no frameworks, no network, strict CSP
 ```
 
 Key design rules:
 
-1. **The decision is deterministic.** Cost per year, waste hierarchy, impact — no model decides anything.
-2. **Missing data is `unknown`.** Never fabricate a sensor, a score or a price.
-3. **Ranges, not false precision.** CO₂e and materials are published estimates with a range.
-4. **Recycling is ranked last.** Reuse and repair are almost always better financially and environmentally.
-5. **Local only.** No telemetry, no accounts, no update pings, no remote assets.
+1. **The data is deterministic.** Compatibility, prices, mass and impact — no model decides anything.
+2. **AI fills filters, not facts.** The local model may turn a sentence into search filters; it never invents a part,
+   a price or a health score.
+3. **Missing data is `unknown`.** Never fabricate a sensor, a score or a price.
+4. **Ranges, not false precision.** CO₂e and materials are published estimates with a range.
+5. **Local only.** No telemetry, no accounts, no update pings, no remote assets. The LAN sweep stays on the local
+   private network and does not probe ports.
+
+## Recycle & replace workflow
+
+1. **Scan.** Run a local hardware scan, scan connected devices, or sweep the private LAN. The local scan offers every
+   component (whole device, battery, each drive, memory, cooling) as a stash candidate.
+2. **Stash.** Choose **Recycle** or **Replace** for each candidate, or add something manually. Replace items keep the
+   detected requirements (DDR generation, SO-DIMM/DIMM, NVMe/SATA) so the market can score compatibility.
+
+   ![Scan and stash](docs/scan-stash.png)
+3. **Replace.** Open an item in the Replace tab to search the OpenSooq index. **AI compatible parts** sends the item
+   to the local model (when one is installed) to fill filters; the deterministic parser is the fallback. Compatibility
+   and prices never come from the model.
+
+   ![Replacement target and market](docs/replace-market.png)
+4. **Recycle.** Add a photo to each recycle item, choose a verified recycler, and generate a PDF manifest. The PDF
+   contains the items, quantities, photos, mass/material estimates, recycler contact details and a handover
+   declaration. The items move to `Recycled` in the ledger; **Email recycler** opens your mail app with the address
+   and message so you can attach the saved PDF.
+
+   ![Recycle stash and manifest](docs/recycle-stash.png)
+5. **Track.** The Impact tab counts what is still stashed, what was recycled or replaced, and the estimated kilograms
+   diverted and CO₂e avoided.
+
+The estimates are deliberately conservative: recycling recovers materials, it does not undo manufacturing.
 
 ## Data and privacy
 
@@ -333,31 +366,22 @@ It renders in the current language, including RTL Arabic.
 
 ![Passport PDF](docs/passport-pdf.png)
 
-## From a fault to a fix
+## From a scan to a stash
 
-![Remedies with local options](docs/remedy-market.png)
+Every scan produces candidates, not a lecture. A laptop scan offers the whole device, the battery, each drive, memory
+and cooling; a USB or LAN scan offers the external device. Each row carries two actions:
 
-The diagnosis and the market used to be separate tabs. Now every remedy carries its own local options, matched against
-the detected machine:
-
-| Remedy | What it pulls from the market index |
+| Action | What happens next |
 |---|---|
-| Replace the failing drive | SSDs of 240 GB+, filtered by the detected bus (NVMe/SATA) and form factor |
-| Add memory | RAM with the right generation and SO-DIMM/DIMM form factor |
-| Replace the battery | Laptop battery listings (coin cells excluded) |
-| Cooling service | Thermal paste and fan listings |
-| Replace the whole device | Used laptops/desktops near the median price, not the cheapest junk |
-| Recycle it properly | The real partners, with phone numbers and pickup status |
+| **Recycle** | the item enters the recycle stash, where you can attach a photo, add a note and generate the manifest |
+| **Replace** | the item enters the replacement stash, where you can search compatible parts and log the chosen listing |
 
-The recycle card also carries the **data-destruction step**: the exact command for each detected drive
-(`nvme sanitize`, `hdparm security-erase`, `shred`), a one-click wipe attestation, and a pickup message you can copy and
-send. Physical destruction is flagged for failing drives.
+The recycle manifest includes the **data-destruction warning** and the exact wipe command for each detected drive
+(`nvme sanitize`, `hdparm security-erase`, `shred`). A wipe attestation can be recorded in More → Second-life
+passport. Physical destruction is flagged for failing drives.
 
-Each block shows the **median and the number of listings**, then the three best options with prices. "Open in Market"
-jumps to the market tab already filtered to that category.
-
-Matches exclude price outliers, accessories, wanted/barter ads ("مطلوب", "للبدل") and anything incompatible with the
-machine. When nothing fits, it says so instead of showing a random part.
+Market matches exclude price outliers, accessories, wanted/barter ads ("مطلوب", "للبدل") and anything incompatible
+with the stashed item. When nothing fits, it says so instead of showing a random part.
 
 ## Arabic mode (العربية)
 
@@ -377,17 +401,17 @@ Translated so far:
 - health item labels (battery, storage, thermals, memory) and severity chips
 - toasts
 
-**Still English:** the technical prose produced by the scan — health summaries, fault titles and details, remedy
-titles, descriptions, steps and warnings. The app states this under the tabs in Arabic mode rather than pretending
-otherwise. Localising it needs a `lang` argument flowing into `lib/health.ts` and `lib/advisor.ts`, which is the next
-step if full Arabic is required.
+**Still English:** the new scan/stash/manifest prose and the dynamic candidate details (device health, disk models,
+partner names). The app states this under the tabs in Arabic mode rather than pretending otherwise. Localising it needs
+a `lang` argument flowing through the renderer and `electron/recycle-pdf.ts`, which is the next step if full Arabic is
+required.
 
 ## Contributing (teammates)
 
 Good places to work without touching the core:
 
 1. **Price book** — survey real shops and replace the seed rows (`data/prices.json`).
-2. **Fault trees** — device classes beyond laptops/desktops, starting in `lib/health.ts` + `lib/advisor.ts`.
+2. **Detection coverage** — more device classes and reliable USB/LAN identification, starting in `lib/detect/`.
 3. **Windows** — verify `lib/detect/windows.ts` on a real machine and tighten the CIM mappings.
 4. **Passport UI** — a verification view that accepts a scanned QR on a second device.
 5. **Localisation** — Arabic UI strings (the app is currently English with Arabic branding).

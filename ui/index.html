@@ -7,7 +7,7 @@
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'self'"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Fahes — hardware advisor</title>
+    <title>Fahes — recycle & replace</title>
     <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
     <link rel="stylesheet" href="style.css" />
   </head>
@@ -18,18 +18,21 @@
           <img class="mark" src="assets/logo.svg" alt="Fahes logo" width="38" height="38" />
           <div>
             <strong>Fahes</strong>
-            <small>فحص · hardware advisor</small>
+            <small>فحص · recycle &amp; replace</small>
           </div>
         </div>
 
-        <button id="scanBtn" class="primary wide" data-i18n="scan.run">Run a check</button>
+        <button id="scanBtn" class="primary wide" data-i18n="scan.local">Scan this PC</button>
         <label class="demo-toggle">
           <input type="checkbox" id="demoToggle" />
           <span data-i18n="scan.demo">Simulate wear</span>
           <small data-i18n="scan.demoNote">(demo mode)</small>
         </label>
 
-        <div class="label" data-i18n="side.devices">Devices</div>
+        <div class="label" data-i18n="stash.label">Stash</div>
+        <div id="stashSummary" class="stash-summary"></div>
+
+        <div class="label" data-i18n="side.devices">Scanned devices</div>
         <div id="deviceList" class="device-list"></div>
 
         <div class="side-foot">
@@ -50,8 +53,8 @@
       <main>
         <header class="topbar">
           <div>
-            <h1 id="deviceName">No device checked yet</h1>
-            <p id="deviceMeta">Reads your hardware locally, then advises: repair, upgrade, recycle or replace.</p>
+            <h1 id="pageTitle">Scan &amp; stash</h1>
+            <p id="pageMeta">Read this PC, USB devices, or your LAN, then file each item for recycling or replacement.</p>
           </div>
           <div class="top-right">
             <span id="healthPill" class="pill hidden"></span>
@@ -59,9 +62,8 @@
         </header>
 
         <nav class="tabs" id="tabs">
-          <button class="tab active" data-tab="overview" data-i18n="nav.overview">Overview</button>
-          <button class="tab" data-tab="fix" data-i18n="nav.fix">Fix it</button>
-          <button class="tab" data-tab="market" data-i18n="nav.market">Market</button>
+          <button class="tab active" data-tab="scan" data-i18n="nav.scan">Scan</button>
+          <button class="tab" data-tab="replace" data-i18n="nav.replace">Replace</button>
           <button class="tab" data-tab="recycle" data-i18n="nav.recycle">Recycle</button>
           <button class="tab" data-tab="impact" data-i18n="nav.impact">Impact</button>
           <button class="tab" data-tab="more" data-i18n="nav.more">More</button>
@@ -73,71 +75,103 @@
         </div>
         <div id="partialNote" class="muted small hidden" style="margin: -6px 0 12px"></div>
 
-        <div id="empty" class="empty panel">
-          <div class="empty-inner">
-            <img class="empty-mark" src="assets/logo.svg" alt="Fahes logo" width="64" height="64" />
-            <h2 data-i18n="scan.emptyTitle">Start with this machine</h2>
-            <p data-i18n="scan.emptyBody">
-              Fahes reads battery wear, drive health, memory headroom and thermals — on your device, with no network
-              access. Missing sensors are reported as “unknown”, never invented.
+        <!-- SCAN -->
+        <section id="panel-scan" class="panel">
+          <div class="card">
+            <div class="card-head">
+              <h2 data-i18n="scan.title">Find devices to recycle or replace</h2>
+              <span class="muted small" id="scanMeta"></span>
+            </div>
+            <p class="muted small" data-i18n="scan.intro">
+              Start with this machine, look for removable drives and USB peripherals, or sweep your private LAN. Nothing
+              is uploaded and no ports are probed.
             </p>
-            <button id="emptyScan" class="primary" data-i18n="scan.run">Run a check</button>
+            <div class="scan-actions">
+              <button id="scanLocalBtn" class="primary" data-i18n="scan.local">Scan this PC</button>
+              <button id="scanUsbBtn" class="ghost" data-i18n="scan.usb">Connected devices</button>
+              <button id="scanLanBtn" class="ghost" data-i18n="scan.lan">Scan LAN</button>
+            </div>
           </div>
-        </div>
 
-        <!-- OVERVIEW -->
-        <section id="panel-overview" class="panel hidden">
+          <div id="localResult"></div>
+
           <div class="grid-two">
             <div class="card">
-              <div class="card-head">
-                <h2 data-i18n="overview.health">Health</h2>
-              </div>
-              <div id="healthSummary" class="health-summary"></div>
-              <div id="healthList" class="health-list"></div>
+              <div class="card-head"><h2 data-i18n="scan.usbTitle">Connected devices</h2></div>
+              <div id="usbResults" class="scan-list"><p class="muted small" data-i18n="scan.notScanned">Not scanned yet.</p></div>
+              <p id="usbNotes" class="muted small"></p>
             </div>
-
-            <div>
-              <div class="card">
-                <div class="card-head"><h2 data-i18n="overview.findings">Findings</h2></div>
-                <div id="faultList" class="fault-list"></div>
-              </div>
-
-              <details class="card fold">
-                <summary data-i18n="overview.machine">This machine</summary>
-                <div id="specList" class="spec-list"></div>
-              </details>
-
-              <details class="card fold">
-                <summary data-i18n="overview.notes">Sensor notes</summary>
-                <ul id="hintList" class="hints"></ul>
-              </details>
+            <div class="card">
+              <div class="card-head"><h2 data-i18n="scan.lanTitle">Devices on LAN</h2></div>
+              <div id="lanResults" class="scan-list"><p class="muted small" data-i18n="scan.notScanned">Not scanned yet.</p></div>
+              <p id="lanNotes" class="muted small"></p>
             </div>
           </div>
-        </section>
 
-        <!-- FIX -->
-        <section id="panel-fix" class="panel hidden">
-          <div class="card summary-card">
-            <div class="card-head"><h2 data-i18n="advice.summary">Recommendation</h2></div>
-            <p id="adviceSummary" class="summary-text"></p>
-          </div>
-
-          <div id="remedyList" class="remedy-list"></div>
-
-          <details class="card fold">
-            <summary data-i18n="advice.replacement">Replacement baseline</summary>
-            <div id="replacementBox"></div>
-          </details>
-
-          <details class="card fold">
-            <summary data-i18n="advice.logged">Logged decisions</summary>
-            <div id="actionList" class="action-list"></div>
-          </details>
-        </section>
-
-        <!-- MARKET -->
-        <section id="panel-market" class="panel hidden">
           <div class="card">
+            <div class="card-head"><h2 data-i18n="scan.manual">Stash something manually</h2></div>
+            <form id="manualStashForm" class="inline-form">
+              <select id="manualKind">
+                <option value="recycle" data-i18n="stash.recycle">Recycle</option>
+                <option value="replace" data-i18n="stash.replace">Replace</option>
+              </select>
+              <input id="manualTitle" required data-i18n-placeholder="scan.manualTitle" placeholder="What is it? e.g. old router, laptop battery" />
+              <select id="manualCategory">
+                <option value="other">Other</option>
+                <option value="laptop">Laptop</option>
+                <option value="desktop">Desktop</option>
+                <option value="battery">Battery</option>
+                <option value="ssd">SSD</option>
+                <option value="hdd">HDD</option>
+                <option value="ram">RAM</option>
+                <option value="charger">Charger</option>
+                <option value="cooling">Cooling</option>
+                <option value="gpu">GPU</option>
+                <option value="printer">Printer</option>
+                <option value="router">Router</option>
+                <option value="phone">Phone</option>
+                <option value="monitor">Monitor</option>
+                <option value="usb">USB peripheral</option>
+              </select>
+              <input id="manualQty" type="number" min="1" max="99" value="1" aria-label="Quantity" />
+              <button class="ghost" type="submit" data-i18n="stash.add">Add to stash</button>
+            </form>
+          </div>
+        </section>
+
+        <!-- REPLACE -->
+        <section id="panel-replace" class="panel hidden">
+          <div class="card">
+            <div class="card-head">
+              <h2 data-i18n="replace.stash">Replacement stash</h2>
+              <span class="muted small" id="replaceCount"></span>
+            </div>
+            <p class="muted small" data-i18n="replace.intro">
+              Everything you plan to replace. Pick an item, then let Fahes find compatible parts from the local OpenSooq
+              index. AI only fills search filters; compatibility stays deterministic.
+            </p>
+            <form id="replaceForm" class="inline-form">
+              <input id="replaceTitle" required data-i18n-placeholder="replace.manualTitle" placeholder="Add a part or device to replace" />
+              <select id="replaceCategory">
+                <option value="ram">RAM</option>
+                <option value="ssd">SSD</option>
+                <option value="hdd">HDD</option>
+                <option value="battery">Battery</option>
+                <option value="charger">Charger</option>
+                <option value="cooling">Cooling</option>
+                <option value="gpu">GPU</option>
+                <option value="laptop">Laptop</option>
+                <option value="desktop">Desktop</option>
+                <option value="other">Other</option>
+              </select>
+              <button class="ghost" type="submit" data-i18n="replace.add">Add</button>
+            </form>
+            <div id="replaceList" class="stash-list"></div>
+          </div>
+
+          <div id="replaceTarget" class="target-banner hidden"></div>
+
+          <div class="card" id="marketCard">
             <div class="card-head">
               <h2 data-i18n="market.title">OpenSooq market index</h2>
               <span class="muted small" id="marketMeta">Loading…</span>
@@ -208,24 +242,68 @@
 
         <!-- RECYCLE -->
         <section id="panel-recycle" class="panel hidden">
-          <div class="card summary-card">
-            <div class="card-head"><h2 data-i18n="recycle.decision">Retire or repair?</h2></div>
-            <p id="recycleDecision" class="summary-text"></p>
-            <div id="recycleActions" class="recycle-actions"></div>
-          </div>
-
-          <div class="card">
-            <div class="card-head"><h2 data-i18n="recycle.destroyTitle">Data destruction</h2></div>
-            <div id="destructionBox"></div>
-          </div>
-
           <div class="card">
             <div class="card-head">
-              <h2 data-i18n="recycle.title">Where it actually goes</h2>
-              <span class="muted small" id="recyclerCount"></span>
+              <h2 data-i18n="recycle.stash">Recycle stash</h2>
+              <span class="muted small" id="recycleCount"></span>
             </div>
-            <div id="recyclerList" class="remedy-list"></div>
+            <p class="muted small" data-i18n="recycle.intro">
+              Keep adding e-waste as you find it. Attach a photo to each item so the recycler knows exactly what is
+              coming. Generate the manifest when you are ready to hand it over.
+            </p>
+            <form id="recycleForm" class="inline-form">
+              <input id="recycleTitle" required data-i18n-placeholder="recycle.manualTitle" placeholder="Add something to recycle" />
+              <select id="recycleCategory">
+                <option value="other">Other</option>
+                <option value="laptop">Laptop</option>
+                <option value="desktop">Desktop</option>
+                <option value="battery">Battery</option>
+                <option value="ssd">SSD</option>
+                <option value="hdd">HDD</option>
+                <option value="ram">RAM</option>
+                <option value="charger">Charger</option>
+                <option value="cooling">Cooling</option>
+                <option value="gpu">GPU</option>
+                <option value="printer">Printer</option>
+                <option value="router">Router</option>
+                <option value="phone">Phone</option>
+                <option value="monitor">Monitor</option>
+                <option value="usb">USB peripheral</option>
+              </select>
+              <input id="recycleQty" type="number" min="1" max="99" value="1" aria-label="Quantity" />
+              <button class="ghost" type="submit" data-i18n="recycle.add">Add</button>
+            </form>
+            <div id="recycleList" class="stash-list"></div>
           </div>
+
+          <div class="card">
+            <div class="card-head"><h2 data-i18n="recycle.manifest">Recycling manifest</h2></div>
+            <div class="form-row">
+              <label>
+                <span data-i18n="recycle.recycler">Recycler</span>
+                <select id="recyclerSelect"></select>
+              </label>
+              <label>
+                <span data-i18n="recycle.note">Note for the recycler</span>
+                <textarea id="recycleNote" rows="2" placeholder="Pickup address, preferred day, access notes…"></textarea>
+              </label>
+            </div>
+            <div id="recycleSummary" class="manifest-summary"></div>
+            <div class="manifest-actions">
+              <button id="generateRecyclePdf" class="primary" data-i18n="recycle.generate">Generate recycle PDF</button>
+              <button id="emailRecycler" class="ghost" data-i18n="recycle.emailAction">Email recycler</button>
+            </div>
+            <p class="muted small" data-i18n="recycle.emailNote">
+              Email opens your mail app with the recycler address and a ready message. Attach the PDF that was just
+              saved.
+            </p>
+            <div id="recyclePdfResult" class="tiny"></div>
+          </div>
+
+          <details class="card fold">
+            <summary data-i18n="recycle.destroyTitle">Data destruction — before anyone else touches it</summary>
+            <div id="destructionBox"></div>
+          </details>
         </section>
 
         <!-- IMPACT -->
@@ -262,6 +340,14 @@
                 <tbody id="priceTable"></tbody>
               </table>
             </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2 data-i18n="recycle.title">Where it actually goes</h2>
+              <span class="muted small" id="recyclerCount"></span>
+            </div>
+            <div id="recyclerList" class="remedy-list"></div>
           </div>
 
           <div class="card">

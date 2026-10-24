@@ -304,6 +304,10 @@ export type Ledger = {
   kgDiverted: number;
   jodSaved: number;
   materials: MaterialAmount[];
+  stashedRecycle: number;
+  stashedReplace: number;
+  recycled: number;
+  replaced: number;
 };
 
 export type WipeRecord = {
@@ -324,4 +328,91 @@ export type Passport = {
   impact: { co2eAvoidedKg: number; kgDiverted: number; materials: MaterialAmount[] };
   wipe: WipeRecord | null;
   hash: string;
+};
+
+/* ---------------- recycle / replace stash ---------------- */
+
+export type StashKind = "recycle" | "replace";
+export type StashStatus = "stashed" | "recycled" | "replaced";
+export type StashSource = "local" | "usb" | "lan" | "manual";
+
+export type StashImpact = {
+  co2eAvoidedKg: number;
+  kgDiverted: number;
+  materials: MaterialAmount[];
+};
+
+export type StashItem = {
+  id: string;
+  kind: StashKind;
+  status: StashStatus;
+  source: StashSource;
+  title: string;
+  category: string;
+  detail: string;
+  deviceId: string | null;
+  serialHash: string | null;
+  deviceClass: DeviceClass | null;
+  quantity: number;
+  notes: string;
+  photoFile: string | null;
+  photoMime: string | null;
+  requirements: DeviceRequirements | null;
+  marketCategory: MarketCategory | null;
+  impact: StashImpact;
+  replacedWith: { listingId: string; title: string; priceJod: number; url: string } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type StashCandidate = {
+  key: string;
+  kind: StashKind;
+  title: string;
+  category: string;
+  detail: string;
+  marketCategory: MarketCategory | null;
+  requirements: DeviceRequirements | null;
+  impact: StashImpact;
+};
+
+export type AddStashInput = {
+  kind: StashKind;
+  source: StashSource;
+  title: string;
+  category: string;
+  detail?: string;
+  deviceId?: string | null;
+  serialHash?: string | null;
+  deviceClass?: DeviceClass | null;
+  quantity?: number;
+  notes?: string;
+  requirements?: DeviceRequirements | null;
+  marketCategory?: MarketCategory | null;
+  impact?: StashImpact;
+};
+
+export type DiscoveredDevice = {
+  id: string;
+  source: "usb" | "lan";
+  title: string;
+  category: string;
+  detail: string;
+  serialHash: string | null;
+  meta: Record<string, string>;
+};
+
+export type ScanDiscovery = {
+  devices: DiscoveredDevice[];
+  notes: string[];
+  scannedAt: string;
+};
+
+export type RecycleBatch = {
+  id: string;
+  createdAt: string;
+  recycler: Recycler;
+  items: (StashItem & { photoDataUrl: string | null })[];
+  note: string;
+  totals: { items: number; kgDiverted: number; co2eAvoidedKg: number; materials: MaterialAmount[] };
 };

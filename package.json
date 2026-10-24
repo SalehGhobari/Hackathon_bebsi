@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "productName": "Fahes",
-  "description": "Fahes - a local-first hardware advisor: diagnose, repair, upgrade, recycle.",
+  "description": "Fahes - a local-first recycle & replace app: scan hardware, stash e-waste, generate recycling manifests, find compatible parts.",
   "license": "MIT",
   "author": "Fahes",
   "main": "dist/electron/main.js",
@@ -18,7 +18,8 @@
     "check": "tsc --noEmit && npm run build:main",
     "pack:linux": "npm run build:main && electron-builder --linux AppImage",
     "pack:win": "npm run build:main && electron-builder --win nsis",
-    "pack:dir": "npm run build:main && electron-builder --dir"
+    "pack:dir": "npm run build:main && electron-builder --dir",
+    "test:stash": "esbuild test/stash.ts --bundle --platform=node --format=cjs --outfile=dist/test-stash.cjs && node dist/test-stash.cjs"
   },
   "dependencies": {
     "qrcode": "^1.5.4"

@@ -55,19 +55,24 @@ export function checkCompatibility(listing: ParsedListing, req: DeviceRequiremen
     }
     if (mismatch) return { status: "incompatible", reasons };
 
-    const known = Boolean(
-      (req.ramGen && listing.ramGen) || (req.ramForm && listing.formFactor),
-    );
-    if (known) {
+    const missing: string[] = [];
+    if (!req.ramGen) missing.push("machine memory generation is unknown");
+    if (!listing.ramGen) missing.push("listing does not state DDR generation");
+    if (!req.ramForm) missing.push("machine form factor is unknown");
+    if (!listing.formFactor) missing.push("listing does not state SO-DIMM/DIMM");
+    if (missing.length) {
       return {
-        status: "compatible",
-        reasons: [
-          [req.ramGen ?? listing.ramGen, req.ramForm ?? listing.formFactor].filter(Boolean).join(" · "),
-          "Confirm slot count and maximum capacity in the service manual.",
-        ],
+        status: "check",
+        reasons: [...missing, "Match DDR generation and form factor before buying."],
       };
     }
-    return { status: "check", reasons: ["Listing does not state generation or form factor."] };
+    return {
+      status: "compatible",
+      reasons: [
+        [req.ramGen, req.ramForm].filter(Boolean).join(" · "),
+        "Confirm slot count and maximum capacity in the service manual.",
+      ],
+    };
   }
 
   if (listing.category === "ssd" || listing.category === "hdd") {

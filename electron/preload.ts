@@ -12,11 +12,31 @@ const api = {
   ledger: () => invoke("ledger"),
   prices: () => invoke("prices"),
   recyclers: () => invoke("recyclers"),
-  market: (deviceId?: string) => invoke("market:get", { deviceId }),
-  refreshMarket: (deviceId?: string) => invoke("market:refresh", { deviceId }),
+  market: (target?: string | { deviceId?: string; stashId?: string }) =>
+    invoke("market:get", typeof target === "string" ? { deviceId: target } : target ?? {}),
+  refreshMarket: (target?: string | { deviceId?: string; stashId?: string }) =>
+    invoke("market:refresh", typeof target === "string" ? { deviceId: target } : target ?? {}),
   listingImage: (listingId: string) => invoke("market:image", { listingId }),
   aiStatus: () => invoke("ai:status"),
   aiSearch: (query: string, lang?: string) => invoke("ai:search", { query, lang }),
+
+  scanConnected: () => invoke("scan:connected"),
+  scanLan: () => invoke("scan:lan"),
+
+  stashList: (kind?: "recycle" | "replace") => invoke("stash:list", { kind }),
+  stashCandidates: (deviceId: string) => invoke("stash:candidates", { deviceId }),
+  addStash: (input: unknown) => invoke("stash:add", input),
+  updateStash: (id: string, patch: unknown) => invoke("stash:update", { id, patch }),
+  removeStash: (id: string) => invoke("stash:remove", { id }),
+  markStash: (id: string, status: "recycled" | "replaced", replacedWith?: unknown) =>
+    invoke("stash:mark", { id, status, replacedWith }),
+  pickStashPhoto: (id: string) => invoke("stash:photo-pick", { id }),
+  stashPhoto: (id: string) => invoke("stash:photo", { id }),
+
+  recyclePdf: (payload: { recyclerId: string; itemIds?: string[]; note?: string; lang?: string }) =>
+    invoke("recycle:pdf", payload),
+  emailRecycler: (recyclerId: string) => invoke("recycle:email", { recyclerId }),
+  openPath: (path: string) => invoke("open:path", { path }),
 
   recordWipe: (deviceId: string, method: string, disk: string) =>
     invoke("wipe:add", { deviceId, method, disk }),

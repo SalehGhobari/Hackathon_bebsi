@@ -1,4 +1,5 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell } from "electron";
+import type { OpenDialogOptions, SaveDialogOptions } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
@@ -7,6 +8,9 @@ import { Store } from "../lib/store";
 import { compactForQr, verifyPassport } from "../lib/passport";
 import { renderPassportHtml } from "./passport-pdf";
 import { aiSearch, aiStatus } from "../lib/ai";
+import { scanConnected } from "../lib/detect/connected";
+import { scanLan } from "../lib/detect/lan";
+import { renderRecycleHtml } from "./recycle-pdf";
 
 let store: Store;
 let win: BrowserWindow | null = null;
@@ -20,7 +24,7 @@ function createWindow() {
     minWidth: 940,
     minHeight: 620,
     backgroundColor: "#0b0f12",
-    title: "Fahes — hardware advisor",
+    title: "Fahes — recycle & replace",
     icon: app.isPackaged ? undefined : appIcon,
     show: false,
     webPreferences: {
@@ -84,11 +88,121 @@ function registerIpc() {
   handle("prices", () => store.prices());
   handle("recyclers", () => store.recyclers());
 
-  handle("market:get", (payload) => store.market((payload as { deviceId?: string } | undefined)?.deviceId));
+  handle("market:get", (payload) =>
+    store.market((payload as { deviceId?: string; stashId?: string } | undefined) ?? {}),
+  );
   handle("market:refresh", (payload) =>
-    store.refreshMarket((payload as { deviceId?: string } | undefined)?.deviceId),
+    store.refreshMarket((payload as { deviceId?: string; stashId?: string } | undefined) ?? {}),
   );
   handle("market:image", (payload) => store.image((payload as { listingId: string }).listingId));
+
+  handle("scan:connected", () => scanConnected());
+  handle("scan:lan", () => scanLan());
+
+  handle("stash:list", (payload) => store.listStash((payload as { kind?: "recycle" | "replace" } | undefined)?.kind));
+  handle("stash:candidates", (payload) => store.candidates((payload as { deviceId: string }).deviceId));
+  handle("stash:add", (payload) => store.addStash(payload as Parameters<typeof store.addStash>[0]));
+  handle("stash:update", (payload) => {
+    const { id, patch } = payload as { id: string; patch: Parameters<typeof store.updateStash>[1] };
+    return store.updateStash(id, patch);
+  });
+  handle("stash:remove", (payload) => store.removeStash((payload as { id: string }).id));
+  handle("stash:mark", (payload) => {
+    const { id, status, replacedWith } = payload as {
+      id: string;
+      status: "recycled" | "replaced";
+      replacedWith?: Parameters<typeof store.markStash>[2];
+    };
+    return store.markStash(id, status, replacedWith);
+  });
+
+  handle("stash:photo-pick", async (payload) => {
+    const { id } = payload as { id: string };
+    const options: OpenDialogOptions = {
+      title: "Attach a photo",
+      properties: ["openFile"],
+      filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "webp"] }],
+    };
+    const result = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
+    if (result.canceled || !result.filePaths[0]) return null;
+    const image = nativeImage.createFromPath(result.filePaths[0]);
+    if (image.isEmpty()) throw new Error("That image could not be read.");
+    const size = image.getSize();
+    const resized = size.width > 1200 ? image.resize({ width: 1200 }) : image;
+    return store.setStashPhoto(id, resized.toJPEG(82), "image/jpeg");
+  });
+
+  handle("stash:photo", (payload) => ({
+    dataUrl: store.stashPhotoDataUrl((payload as { id: string }).id),
+  }));
+
+  handle("recycle:pdf", async (payload) => {
+    const { recyclerId, itemIds, note, lang } = payload as {
+      recyclerId: string;
+      itemIds?: string[];
+      note?: string;
+      lang?: "en" | "ar";
+    };
+    const batch = store.recycleBatch(recyclerId, itemIds, note ?? "");
+    const html = renderRecycleHtml(batch, lang === "ar" ? "ar" : "en");
+    const tmp = path.join(os.tmpdir(), `fahes-recycle-${Date.now()}.html`);
+    fs.writeFileSync(tmp, html, "utf8");
+
+    const preview = new BrowserWindow({ show: false, webPreferences: { offscreen: true, javascript: false } });
+    try {
+      await preview.loadFile(tmp);
+      const pdf = await preview.webContents.printToPDF({ printBackground: true, pageSize: "A4" });
+
+      const forcedPath = process.env.FAHES_RECYCLE_PDF_PATH;
+      let savedPath = forcedPath ?? null;
+      if (!savedPath) {
+        const options: SaveDialogOptions = {
+          title: "Save recycling manifest",
+          defaultPath: `fahes-recycle-${new Date().toISOString().slice(0, 10)}.pdf`,
+          filters: [{ name: "PDF", extensions: ["pdf"] }],
+        };
+        const result = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options);
+        if (result.canceled || !result.filePath) return { saved: false };
+        savedPath = result.filePath;
+      }
+      fs.writeFileSync(savedPath, pdf);
+      store.markRecycled(batch.items.map((i) => i.id));
+      return { saved: true, path: savedPath, count: batch.totals.items, ids: batch.items.map((i) => i.id) };
+    } finally {
+      preview.destroy();
+      try {
+        fs.unlinkSync(tmp);
+      } catch {
+        /* temp file already gone */
+      }
+    }
+  });
+
+  handle("recycle:email", async (payload) => {
+    const { recyclerId } = payload as { recyclerId: string };
+    const recycler = store.recyclers().find((r) => r.id === recyclerId);
+    if (!recycler) throw new Error("Choose a recycling partner first.");
+    const subject = "Fahes e-waste recycling manifest";
+    const body = [
+      `Hello ${recycler.name},`,
+      "",
+      "I have prepared a recycling manifest in Fahes. Please find the PDF attached to this email.",
+      "It lists the items, quantities and photos, and my contact details for pickup.",
+      "",
+      "Thank you.",
+    ].join("\n");
+    await shell.openExternal(
+      `mailto:${encodeURIComponent(recycler.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+    );
+    return { opened: true };
+  });
+
+  handle("open:path", async (payload) => {
+    const target = (payload as { path: string }).path;
+    const error = await shell.openPath(target);
+    if (error) throw new Error(error);
+    return true;
+  });
 
   handle("ai:status", () => aiStatus());
   handle("ai:search", (payload) => {
