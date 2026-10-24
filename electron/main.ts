@@ -11,6 +11,8 @@ import { aiSearch, aiStatus } from "../lib/ai";
 let store: Store;
 let win: BrowserWindow | null = null;
 
+const appIcon = path.join(__dirname, "../../build/icon.png");
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1200,
@@ -19,6 +21,7 @@ function createWindow() {
     minHeight: 620,
     backgroundColor: "#0b0f12",
     title: "Fahes — hardware advisor",
+    icon: app.isPackaged ? undefined : appIcon,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),

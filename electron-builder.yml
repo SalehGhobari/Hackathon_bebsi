@@ -11,11 +11,13 @@ asar: true
 linux:
   target:
     - AppImage
+  icon: build/icon.png
   category: Utility
   artifactName: ${productName}-${version}-${arch}.AppImage
 win:
   target:
     - nsis
+  icon: build/icon.ico
   artifactName: ${productName}-Setup-${version}-${arch}.exe
 nsis:
   oneClick: false

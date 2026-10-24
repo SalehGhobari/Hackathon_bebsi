@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#232b32" />
+      <stop offset="100%" stop-color="#161b22" />
+    </linearGradient>
+  </defs>
+
+  <!-- App Icon Background (Rounded Rect for standard app aesthetics) -->
+  <rect width="512" height="512" rx="110" fill="url(#bg)" />
+
+  <!-- 8-Point Star (Subtle Islamic Geometry Hint) -->
+  <g transform="translate(256, 256) scale(1.2)">
+    <!-- Square 1 -->
+    <rect x="-100" y="-100" width="200" height="200" fill="none" stroke="#2c363f" stroke-width="12" />
+    <!-- Square 2 (Rotated) -->
+    <rect x="-100" y="-100" width="200" height="200" fill="none" stroke="#2c363f" stroke-width="12" transform="rotate(45)" />
+  </g>
+
+  <!-- Circular Arrows (Repair / Circular Economy) -->
+  <!-- Emerald Green Arrow -->
+  <path d="M 136 256 A 120 120 0 0 1 376 256" fill="none" stroke="#10B981" stroke-width="18" stroke-linecap="round" />
+  <polygon points="350,230 400,256 350,282" fill="#10B981" />
+  <!-- Amber/Copper Arrow -->
+  <path d="M 376 256 A 120 120 0 0 1 136 256" fill="none" stroke="#F59E0B" stroke-width="18" stroke-linecap="round" />
+  <polygon points="162,282 112,256 162,230" fill="#F59E0B" />
+
+  <!-- Central Hardware Chip -->
+  <rect x="186" y="186" width="140" height="140" rx="16" fill="#1a2026" stroke="#52606D" stroke-width="8" />
+  
+  <!-- Chip Pins -->
+  <!-- Top -->
+  <path d="M 216 186 v -16 m 26 16 v -16 m 26 16 v -16 m 26 16 v -16" stroke="#52606D" stroke-width="8" stroke-linecap="round" />
+  <!-- Bottom -->
+  <path d="M 216 326 v 16 m 26 -16 v 16 m 26 -16 v 16 m 26 -16 v 16" stroke="#52606D" stroke-width="8" stroke-linecap="round" />
+  <!-- Left -->
+  <path d="M 186 216 h -16 m 16 26 h -16 m 16 26 h -16 m 16 26 h -16" stroke="#52606D" stroke-width="8" stroke-linecap="round" />
+  <!-- Right -->
+  <path d="M 326 216 h 16 m -16 26 h 16 m -16 26 h 16 m -16 26 h 16" stroke="#52606D" stroke-width="8" stroke-linecap="round" />
+
+  <!-- Diagnostic Pulse Line -->
+  <path d="M 206 256 h 15 l 12 -25 l 22 55 l 20 -40 l 12 10 h 20" fill="none" stroke="#10B981" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

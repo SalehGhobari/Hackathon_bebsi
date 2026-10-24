@@ -108,6 +108,9 @@ npm run pack:win     # release/Fahes-Setup-0.1.0-x64.exe  (run this ON Windows)
 Cross-building the Windows installer from Linux is not supported here — build it on the Windows laptop.
 AppImage needs FUSE 2; on Arch install `libfuse2`, or run with `--appimage-extract-and-run`.
 
+Branding assets live in `build/`: `icon.svg` is the source logo, `icon.png` (512×512) is used by Linux and the dev
+window, and `icon.ico` is used by the Windows installer. The in-app copy is `ui/assets/logo.svg`.
+
 ---
 
 ## Navigation (kept small on purpose)
