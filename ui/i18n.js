@@ -16,7 +16,7 @@
       "scan.demoNote": "(demo mode)",
       "scan.emptyTitle": "Start with this machine",
       "scan.emptyBody":
-        "Fahas reads battery wear, drive health, memory headroom and thermals — on your device, with no network access. Missing sensors are reported as “unknown”, never invented.",
+        "Fahes reads battery wear, drive health, memory headroom and thermals — on your device, with no network access. Missing sensors are reported as “unknown”, never invented.",
 
       "side.devices": "Devices",
       "side.none": "No devices checked yet.",
@@ -165,7 +165,7 @@
       "passport.noWipe": "no wipe record",
       "passport.destroy": "Data destruction",
       "passport.destroyIntro":
-        "Before a device is resold or recycled, the drive matters more than the hardware. Record the method you used. Fahas stores an attestation locally — it is a record, not a cryptographic proof.",
+        "Before a device is resold or recycled, the drive matters more than the hardware. Record the method you used. Fahes stores an attestation locally — it is a record, not a cryptographic proof.",
       "passport.method": "Method",
       "passport.drive": "Drive",
       "passport.record": "Record wipe attestation",
@@ -514,8 +514,8 @@
     },
   };
 
-  const STORAGE_KEY = "fahas-lang";
-  let lang = localStorage.getItem(STORAGE_KEY) === "ar" ? "ar" : "en";
+  const STORAGE_KEY = "fahes-lang";
+  let lang = (localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("fahas-lang")) === "ar" ? "ar" : "en";
 
   function t(key, vars) {
     const table = DICT[lang] || DICT.en;

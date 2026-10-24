@@ -1,5 +1,5 @@
-/* Fahas renderer — no frameworks, no network calls, no node access. */
-const api = window.fahas;
+/* Fahes renderer — no frameworks, no network calls, no node access. */
+const api = window.fahes;
 
 const state = {
   view: null,
@@ -62,7 +62,7 @@ function range(low, high, unit) {
 document.addEventListener("DOMContentLoaded", () => {
   if (!api) {
     document.body.innerHTML =
-      '<div style="padding:40px;font-family:system-ui"><h2>Fahas must run as the desktop app.</h2><p>Launch it with <code>npm run dev</code> or the packaged AppImage / installer.</p></div>';
+      '<div style="padding:40px;font-family:system-ui"><h2>Fahes must run as the desktop app.</h2><p>Launch it with <code>npm run dev</code> or the packaged AppImage / installer.</p></div>';
     return;
   }
   bind();
@@ -91,7 +91,7 @@ async function boot() {
     await refreshDevices();
     if (!state.view) showEmpty(true);
 
-    // Rehearsal shortcut: `FAHAS_DEMO=1 npm run dev` opens straight into a demo scan.
+    // Rehearsal shortcut: `FAHES_DEMO=1 npm run dev` opens straight into a demo scan.
     if (new URLSearchParams(location.search).get("demo") === "1") {
       const toggle = $("#demoToggle");
       if (toggle) toggle.checked = true;
@@ -201,7 +201,7 @@ function bind() {
       const blob = new Blob([JSON.stringify(state.passport.passport, null, 2)], { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `fahas-passport-${(state.view?.device.name || "device").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.json`;
+      a.download = `fahes-passport-${(state.view?.device.name || "device").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.json`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 1500);
     }
@@ -800,7 +800,10 @@ function normText(input) {
 
 async function loadMarket(force = false) {
   const deviceId = state.view?.device.id;
-  if (!force && state.market && state.marketFor === (deviceId ?? null)) return;
+  if (!force && state.market && state.marketFor === (deviceId ?? null)) {
+    renderMarket();
+    return;
+  }
   try {
     state.market = await call(api.market(deviceId));
     state.marketFor = deviceId ?? null;

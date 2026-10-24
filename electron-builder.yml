@@ -1,6 +1,6 @@
-appId: jo.fahas.desktop
-productName: Fahas
-copyright: Apache-2.0
+appId: jo.fahes.desktop
+productName: Fahes
+copyright: MIT
 directories:
   output: release
 files:

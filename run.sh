@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fahas launcher. Always runs from the repository, no matter where you call it from.
+# Fahes launcher. Always runs from the repository, no matter where you call it from.
 set -euo pipefail
 
 cd "$(dirname "$0")"

@@ -47,7 +47,7 @@ async function main() {
   }
 
   console.log("\n=== STORE ===");
-  const dir = path.join(os.tmpdir(), "fahas-test-store");
+  const dir = path.join(os.tmpdir(), "fahes-test-store");
   const store = new Store(dir);
   const scan = await store.scan({ demo: true });
 

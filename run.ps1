@@ -1,4 +1,4 @@
-# Fahas launcher for Windows. Usage:
+# Fahes launcher for Windows. Usage:
 #   powershell -ExecutionPolicy Bypass -File .\run.ps1
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot

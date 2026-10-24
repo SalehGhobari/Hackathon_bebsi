@@ -1,10 +1,11 @@
 {
-  "name": "fahas",
+  "name": "fahes",
   "version": "0.1.0",
   "private": true,
-  "description": "Fahas - a local-first hardware advisor: diagnose, repair, upgrade, recycle.",
+  "productName": "Fahes",
+  "description": "Fahes - a local-first hardware advisor: diagnose, repair, upgrade, recycle.",
   "license": "MIT",
-  "author": "Fahas",
+  "author": "Fahes",
   "main": "dist/electron/main.js",
   "scripts": {
     "build:main": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --format=cjs --external:electron --outdir=dist/electron",

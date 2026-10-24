@@ -2,7 +2,7 @@ import os from "node:os";
 import path from "node:path";
 import { Store } from "../lib/store";
 
-const store = new Store(path.join(os.tmpdir(), "fahas-market-test"));
+const store = new Store(path.join(os.tmpdir(), "fahes-market-test"));
 const market = store.market();
 
 console.log("=== ALL BUCKETS ===");

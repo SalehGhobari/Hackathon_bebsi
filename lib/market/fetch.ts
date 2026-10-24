@@ -21,7 +21,7 @@ export const MARKET_SOURCES = [
   { page: "Search: thermal paste", url: "https://jo.opensooq.com/en/find?PostSearch%5Bterm%5D=thermal%20paste" },
 ];
 
-const USER_AGENT = "Fahas/0.1 (local hardware price check; contact: local app user)";
+const USER_AGENT = "Fahes/0.1 (local hardware price check; contact: local app user)";
 
 const ENTITIES: Record<string, string> = {
   amp: "&",

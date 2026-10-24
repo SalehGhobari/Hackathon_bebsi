@@ -14,7 +14,7 @@ function createWindow() {
     minWidth: 940,
     minHeight: 620,
     backgroundColor: "#0b0f12",
-    title: "Fahas — hardware advisor",
+    title: "Fahes — hardware advisor",
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -27,7 +27,7 @@ function createWindow() {
 
   win.once("ready-to-show", () => win?.show());
   const demoQuery: Record<string, string> | undefined =
-    process.env.FAHAS_DEMO === "1" ? { demo: "1" } : undefined;
+    process.env.FAHES_DEMO === "1" || process.env.FAHAS_DEMO === "1" ? { demo: "1" } : undefined;
   win.loadFile(path.join(__dirname, "../../ui/index.html"), demoQuery ? { query: demoQuery } : {});
 
   win.webContents.setWindowOpenHandler(({ url }) => {

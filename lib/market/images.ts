@@ -48,7 +48,7 @@ export async function fetchListingImage(url: string, cacheDir: string): Promise<
   }
 
   const res = await fetch(url, {
-    headers: { "user-agent": "Fahas/0.1 (local hardware advisor; viewing a public listing photo)" },
+    headers: { "user-agent": "Fahes/0.1 (local hardware advisor; viewing a public listing photo)" },
     signal: AbortSignal.timeout(20_000),
     redirect: "follow",
   });

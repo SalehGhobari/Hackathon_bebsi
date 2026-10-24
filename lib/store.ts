@@ -68,7 +68,7 @@ export class Store {
 
   constructor(private dir: string) {
     fs.mkdirSync(dir, { recursive: true });
-    this.file = path.join(dir, "fahas-data.json");
+    this.file = path.join(dir, "fahes-data.json");
     this.marketFile = path.join(dir, "market.json");
     this.data = this.load();
     this.syncSeedData();

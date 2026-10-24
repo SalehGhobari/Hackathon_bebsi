@@ -22,6 +22,6 @@ const api = {
   verifyPassport: (passport: unknown) => invoke("passport:verify", { passport }),
 };
 
-contextBridge.exposeInMainWorld("fahas", api);
+contextBridge.exposeInMainWorld("fahes", api);
 
-export type FahasApi = typeof api;
+export type FahesApi = typeof api;

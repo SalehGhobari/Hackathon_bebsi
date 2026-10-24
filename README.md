@@ -1,4 +1,4 @@
-# Fahas · فحص
+# Fahes · فحص
 
 **A local-first hardware advisor for laptops and desktops.** It reads what your machine can report, then advises
 **repair, upgrade, recycle or replace** — priced in Jordanian dinars, measured in years of added life, kilograms
@@ -30,7 +30,7 @@ powershell -ExecutionPolicy Bypass -File .\run.ps1   # Windows
 ## Why
 
 Most diagnostic tools tell you a disk is failing. They do not tell you whether it is worth fixing, what the part
-costs in Amman, or what happens to the old one. Fahas is built around the decision, not the reading:
+costs in Amman, or what happens to the old one. Fahes is built around the decision, not the reading:
 
 - **Repair before replace** — ranked by the waste hierarchy (prevent → reuse → repair → recycle → replace), then by
   cost per year of added life.
@@ -73,7 +73,7 @@ costs in Amman, or what happens to the old one. Fahas is built around the decisi
   - Ubuntu / Mint / Debian: `sudo apt install smartmontools lm-sensors`
 - **Windows:** nothing extra. Run as administrator for drive reliability counters and thermal zones.
 
-`smartctl` and DMI reads may require elevated access. Fahas does **not** ask for sudo and never runs elevated; it
+`smartctl` and DMI reads may require elevated access. Fahes does **not** ask for sudo and never runs elevated; it
 degrades and prints the exact command you can run yourself.
 
 If Electron's binary did not download during `npm install` (npm 12 blocks install scripts by default), run:
@@ -101,8 +101,8 @@ npm run test:scan    # real hardware scan + demo scan + store/passport round-tri
 ## Package
 
 ```bash
-npm run pack:linux   # release/Fahas-0.1.0-x86_64.AppImage
-npm run pack:win     # release/Fahas-Setup-0.1.0-x64.exe  (run this ON Windows)
+npm run pack:linux   # release/Fahes-0.1.0-x86_64.AppImage
+npm run pack:win     # release/Fahes-Setup-0.1.0-x64.exe  (run this ON Windows)
 ```
 
 Cross-building the Windows installer from Linux is not supported here — build it on the Windows laptop.
@@ -136,7 +136,7 @@ Key design rules:
 
 ## Data and privacy
 
-- Stored at `app.getPath("userData")/fahas-data.json` — `~/.config/Fahas` on Linux, `%APPDATA%\Fahas` on Windows.
+- Stored at `app.getPath("userData")/fahes-data.json` — `~/.config/Fahes` on Linux, `%APPDATA%\Fahes` on Windows.
 - File mode `0600` where the OS supports it. Delete the file to delete everything.
 - Serials are hashed; only the hash is kept.
 - The renderer has no network access (`connect-src 'none'` in the CSP) and no Node access.
