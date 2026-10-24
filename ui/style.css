@@ -250,6 +250,32 @@ label.inline input { width: auto; accent-color: var(--mint); }
 .listing-side .price small { font-size: 10.5px; color: var(--muted); font-weight: 500; }
 .listing-side a { color: var(--mint); font-size: 11.5px; text-decoration: none; }
 .listing-side a:hover { text-decoration: underline; }
+.listing-side .thumb {
+  width: 150px; padding: 0; border: 1px solid var(--line); border-radius: 8px;
+  overflow: hidden; background: #0d1317; cursor: pointer;
+}
+.listing-side .thumb img { width: 100%; height: 84px; object-fit: cover; display: block; }
+
+/* ---------- photo modal ---------- */
+.modal {
+  position: fixed; inset: 0; background: #000000b8; z-index: 60;
+  display: grid; place-items: center; padding: 24px;
+}
+.modal-card {
+  position: relative; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 16px; padding: 14px; width: min(860px, 92vw); max-height: 88vh; overflow: auto;
+}
+.modal-img-wrap { background: #000; border-radius: 10px; display: grid; place-items: center; min-height: 220px; }
+.modal-img-wrap img { max-width: 100%; max-height: 64vh; object-fit: contain; display: block; }
+.modal-meta { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.modal-sub { display: flex; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+.modal-sub a { color: var(--mint); text-decoration: none; }
+.modal-sub a:hover { text-decoration: underline; }
+.modal-close {
+  position: absolute; top: 8px; right: 10px; width: 30px; height: 30px; z-index: 2;
+  border-radius: 50%; background: #0b0f12cc; color: var(--text); border: 1px solid var(--line);
+  cursor: pointer; font-size: 18px; line-height: 1;
+}
 .ghost.mini { padding: 3px 9px; font-size: 11px; }
 .chip.photo { color: var(--blue); border-color: #2b4d6b; background: #101c24; }
 .ocr-text {

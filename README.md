@@ -55,6 +55,7 @@ costs in Amman, or what happens to the old one. Fahas is built around the decisi
 | Jordanian price book | Real, dated prices from GTS (retail) and OpenSooq (used, asking), captured 2026-10-24. Labour remains an estimate |
 | Impact ledger | Working (local JSON) |
 | OpenSooq market index | Working — 338 real listings, Arabic parsing, spec buckets, compatibility filter |
+| Listing photo viewer | Working — on-demand fetch, local cache, full-size modal |
 | Second-life passport + QR | Working (signed hash, offline verification) |
 | Wipe attestation | Working — records the method as an **operator attestation**, not proof of erasure |
 | Demo mode | Working — simulates wear so a healthy laptop can demo the full advisor |
@@ -221,6 +222,19 @@ Aggregates show median / P25–P75 / n per spec bucket.
 
 **Refresh** is opt-in and user-initiated: 14 requests to public OpenSooq pages, no account, no cookies, no personal
 data. If it fails or returns nothing, the existing snapshot stays.
+
+### Viewing listing photos
+
+![Photo viewer](docs/market-photo.png)
+
+Classifieds live and die by the photo — a label shot often says more than the title. Each listing has its public image
+URL; **View photo** fetches that one image on demand and opens it full-size in the app.
+
+- Nothing is preloaded. The snapshot ships titles and prices only; photos load when clicked.
+- One request per photo, then cached on disk (`userData/images/`) and in memory for the session.
+- The modal shows the photo, the seller's title, price, area and a link to the original listing.
+- After the first load, a thumbnail appears in the listing row and reopens instantly from cache.
+- Nothing is read or interpreted from the photo — it is there for the human to judge.
 
 ## Recycling partners
 

@@ -10,6 +10,7 @@ import { advise, type Advice } from "./advisor";
 import { buildPassport } from "./passport";
 import { mergeMaterials } from "./green";
 import { buildMarket, fetchMarketListings, requirementsFrom } from "./market";
+import { fetchListingImage, type ListingImage } from "./market/images";
 import type {
   ActionRecord,
   Device,
@@ -108,6 +109,14 @@ export class Store {
     const view = deviceId ? this.view(deviceId) : null;
     const requirements = view ? requirementsFrom(view.device, view.diagnostic) : null;
     return buildMarket(this.marketData.listings, this.marketData.updatedAt, this.marketData.sources, requirements);
+  }
+
+  /** Fetch one listing photo on demand (cache-first). */
+  async image(listingId: string): Promise<ListingImage> {
+    const listing = this.marketData.listings.find((l) => l.id === listingId);
+    if (!listing) throw new Error("Listing not found in the local snapshot.");
+    if (!listing.imageUrl) throw new Error("This listing has no photo.");
+    return fetchListingImage(listing.imageUrl, path.join(this.dir, "images"));
   }
 
   /** Explicit, user-initiated refresh. Merges new listings; keeps old ones on failure. */

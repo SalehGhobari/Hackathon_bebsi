@@ -14,6 +14,7 @@ const api = {
   recyclers: () => invoke("recyclers"),
   market: (deviceId?: string) => invoke("market:get", { deviceId }),
   refreshMarket: (deviceId?: string) => invoke("market:refresh", { deviceId }),
+  listingImage: (listingId: string) => invoke("market:image", { listingId }),
 
   recordWipe: (deviceId: string, method: string, disk: string) =>
     invoke("wipe:add", { deviceId, method, disk }),

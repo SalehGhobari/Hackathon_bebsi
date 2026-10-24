@@ -11,6 +11,7 @@ const state = {
   recyclers: [],
   market: null,
   marketFor: null,
+  photos: new Map(),
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -107,6 +108,19 @@ function bind() {
   $("#deviceList").addEventListener("click", (event) => {
     const btn = event.target.closest(".device");
     if (btn) loadDevice(btn.dataset.id);
+  });
+
+  $("#marketList").addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-view-photo]");
+    if (btn) openPhoto(btn.dataset.viewPhoto);
+  });
+
+  $("#photoClose").addEventListener("click", closePhoto);
+  $("#photoModal").addEventListener("click", (event) => {
+    if (event.target === $("#photoModal")) closePhoto();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closePhoto();
   });
 
   $("#remedyList").addEventListener("click", async (event) => {
@@ -685,6 +699,12 @@ function listingRow(l) {
       <div class="listing-side">
         <div class="price">${money(l.priceJod)} <small>JOD</small></div>
         <span class="badge ${compatClass}">${compatLabel}</span>
+        ${
+          state.photos.has(l.id)
+            ? `<button class="thumb" data-view-photo="${esc(l.id)}" title="View photo"><img src="${state.photos.get(l.id)}" alt="Listing photo" /></button>`
+            : ""
+        }
+        ${l.imageUrl ? `<button class="ghost mini" data-view-photo="${esc(l.id)}">View photo</button>` : ""}
         <a href="${esc(l.url)}" target="_blank" rel="noreferrer">Open listing</a>
       </div>
     </div>`;
@@ -756,6 +776,40 @@ function renderMarket() {
           ? `No compatible listings match. ${hiddenIncompatible} matching listing(s) are incompatible with this machine — untick “Hide incompatible” to see them.`
           : "No listings match these filters."
       }</p>`;
+}
+
+async function openPhoto(listingId) {
+  const listing = state.market?.listings.find((l) => l.id === listingId);
+  const modal = $("#photoModal");
+  $("#photoImg").src = "";
+  $("#photoTitle").textContent = listing?.title ?? "";
+  $("#photoPrice").textContent = listing ? `${money(listing.priceJod)} JOD` : "";
+  $("#photoArea").textContent = listing?.area ?? "";
+  $("#photoLink").href = listing?.url ?? "#";
+  modal.classList.remove("hidden");
+
+  const cached = state.photos.get(listingId);
+  if (cached) {
+    $("#photoImg").src = cached;
+    return;
+  }
+
+  $("#photoPrice").textContent = "Loading photo…";
+  try {
+    const image = await call(api.listingImage(listingId));
+    state.photos.set(listingId, image.dataUrl);
+    $("#photoImg").src = image.dataUrl;
+    $("#photoPrice").textContent = listing ? `${money(listing.priceJod)} JOD` : "";
+    renderMarket();
+  } catch (err) {
+    toast(err.message, "error");
+    closePhoto();
+  }
+}
+
+function closePhoto() {
+  $("#photoModal").classList.add("hidden");
+  $("#photoImg").src = "";
 }
 
 async function generatePassport() {

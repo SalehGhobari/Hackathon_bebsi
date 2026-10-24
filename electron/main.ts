@@ -81,6 +81,7 @@ function registerIpc() {
   handle("market:refresh", (payload) =>
     store.refreshMarket((payload as { deviceId?: string } | undefined)?.deviceId),
   );
+  handle("market:image", (payload) => store.image((payload as { listingId: string }).listingId));
 
 
   handle("wipe:add", (payload) => {

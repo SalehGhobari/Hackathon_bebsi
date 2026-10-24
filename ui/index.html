@@ -211,6 +211,10 @@
               Refresh fetches public OpenSooq category and search pages — fourteen requests, no account and no
               personal data. The shipped snapshot works fully offline.
             </p>
+            <p class="muted small">
+              Photos are not preloaded: click <strong>View photo</strong> to fetch that one image, then it is cached
+              locally. Nothing is read or interpreted from the photo.
+            </p>
 
           </div>
 
@@ -278,6 +282,21 @@
           </div>
         </section>
       </main>
+    </div>
+
+    <div id="photoModal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <button id="photoClose" class="modal-close" aria-label="Close">×</button>
+        <div class="modal-img-wrap"><img id="photoImg" alt="Listing photo" /></div>
+        <div class="modal-meta">
+          <strong id="photoTitle" dir="auto"></strong>
+          <div class="modal-sub">
+            <span id="photoPrice"></span>
+            <span id="photoArea"></span>
+            <a id="photoLink" href="#" target="_blank" rel="noreferrer">Open listing</a>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="app.js"></script>
