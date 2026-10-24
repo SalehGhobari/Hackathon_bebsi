@@ -10,6 +10,7 @@ import { advise, type Advice } from "./advisor";
 import { buildPassport } from "./passport";
 import { DEVICE_MATERIALS, DEVICE_MASS_KG, avoidedManufacturingCo2e, mergeMaterials, scaleMaterials } from "./green";
 import { buildMarket, fetchMarketListings, requirementsFrom } from "./market";
+import { estimateRecycleByName } from "./recycle/estimate";
 import { fetchListingImage, type ListingImage } from "./market/images";
 import type {
   ActionRecord,
@@ -25,6 +26,7 @@ import type {
   PriceEntry,
   RawListing,
   RecycleBatch,
+  RecycleEstimate,
   Recycler,
   StashCandidate,
   StashImpact,
@@ -338,12 +340,33 @@ export class Store {
     return item;
   }
 
+  /** Estimate weight and recoverable materials from a typed name. */
+  estimateRecycle(name: string, category?: string, quantity = 1): RecycleEstimate {
+    const est = estimateRecycleByName(name, category);
+    const q = Math.max(1, Math.min(99, Math.round(quantity)));
+    return {
+      category: est.category,
+      confidence: est.confidence,
+      basis: est.basis,
+      impact: {
+        co2eAvoidedKg: 0,
+        kgDiverted: roundImpact(est.kg * q),
+        materials: scaleMaterials(est.materials, q),
+      },
+      unitImpact: {
+        co2eAvoidedKg: 0,
+        kgDiverted: roundImpact(est.kg),
+        materials: est.materials,
+      },
+    };
+  }
+
   updateStash(
     id: string,
     patch: Partial<
       Pick<
         StashItem,
-        "title" | "category" | "detail" | "notes" | "quantity" | "marketCategory" | "requirements" | "createdAt"
+        "title" | "category" | "detail" | "notes" | "quantity" | "marketCategory" | "requirements" | "createdAt" | "impact"
       >
     >,
   ): StashItem | null {
@@ -360,7 +383,9 @@ export class Store {
     if (patch.quantity !== undefined) {
       item.quantity = Math.max(1, Math.min(99, Math.round(patch.quantity)));
     }
-    if (item.category !== oldCategory || item.quantity !== oldQuantity) {
+    if (patch.impact) {
+      item.impact = patch.impact;
+    } else if (item.category !== oldCategory || item.quantity !== oldQuantity) {
       // Category and quantity both feed the mass/material estimate; recompute rather than scale stale numbers.
       item.impact = impactForStash(item.kind, item.category, item.deviceClass, item.quantity);
     }
@@ -451,7 +476,7 @@ export class Store {
       note,
       totals: {
         items: items.reduce((n, i) => n + i.quantity, 0),
-        kgDiverted: Math.round(items.reduce((n, i) => n + i.impact.kgDiverted, 0) * 10) / 10,
+        kgDiverted: Math.round(items.reduce((n, i) => n + i.impact.kgDiverted, 0) * 100) / 100,
         co2eAvoidedKg: Math.round(items.reduce((n, i) => n + i.impact.co2eAvoidedKg, 0)),
         materials,
       },
@@ -634,7 +659,7 @@ export class Store {
       done.reduce((s, i) => s + i.impact.co2eAvoidedKg, 0) + actions.reduce((s, a) => s + a.co2eAvoidedKg, 0),
     );
     const kgDiverted =
-      Math.round((done.reduce((s, i) => s + i.impact.kgDiverted, 0) + actions.reduce((s, a) => s + a.kgDiverted, 0)) * 10) / 10;
+      Math.round((done.reduce((s, i) => s + i.impact.kgDiverted, 0) + actions.reduce((s, a) => s + a.kgDiverted, 0)) * 100) / 100;
     const materials: MaterialAmount[] = mergeMaterials([
       ...done.flatMap((i) => i.impact.materials),
       ...actions.flatMap((a) => a.materials),
@@ -829,7 +854,8 @@ const COMPONENT_MATERIALS: Record<string, MaterialAmount[]> = {
 };
 
 function roundImpact(n: number): number {
-  return Math.round(n * 10) / 10;
+  // Small parts (SSD, RAM) need finer resolution than whole devices.
+  return n < 1 ? Math.round(n * 100) / 100 : Math.round(n * 10) / 10;
 }
 
 function scaleImpact(impact: StashImpact, factor: number): StashImpact {

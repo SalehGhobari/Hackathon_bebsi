@@ -471,3 +471,19 @@ textarea { resize: vertical; }
 .edit-full { display: flex; flex-direction: column; gap: 5px; margin: 14px 0; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 @media (max-width: 720px) { .edit-row { grid-template-columns: 1fr; } }
+
+/* ---------- name-based recycle estimates ---------- */
+.estimate-preview {
+  margin: 8px 0 2px; padding: 8px 10px;
+  border: 1px dashed var(--line); border-radius: 10px;
+  background: var(--panel-2); font-size: 12px;
+}
+.estimate-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.estimate-head strong { font-size: 14px; }
+.estimate-preview .chips { margin: 4px 0 0; }
+.estimate-edit-row { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+.estimate-edit-row .estimate-preview { flex: 1 1 260px; margin: 0; }
+
+.stash-materials { margin-top: 5px; font-size: 11px; color: var(--muted); }
+.stash-materials summary { cursor: pointer; }
+.stash-materials .chips { margin: 5px 0 0; }

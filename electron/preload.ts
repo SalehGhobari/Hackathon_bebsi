@@ -33,6 +33,9 @@ const api = {
   pickStashPhoto: (id: string) => invoke("stash:photo-pick", { id }),
   stashPhoto: (id: string) => invoke("stash:photo", { id }),
 
+  estimateRecycle: (name: string, category?: string, quantity?: number) =>
+    invoke("recycle:estimate", { name, category, quantity }),
+
   recyclePdf: (payload: { recyclerId: string; itemIds?: string[]; note?: string; lang?: string }) =>
     invoke("recycle:pdf", payload),
   emailRecycler: (recyclerId: string) => invoke("recycle:email", { recyclerId }),

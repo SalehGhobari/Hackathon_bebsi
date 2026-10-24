@@ -410,6 +410,16 @@ export type ScanDiscovery = {
   scannedAt: string;
 };
 
+export type RecycleEstimate = {
+  category: string;
+  confidence: "high" | "medium" | "low";
+  basis: string;
+  /** Impact for the requested quantity (for previews and direct edits). */
+  impact: StashImpact;
+  /** Impact for one unit (for adding with a quantity). */
+  unitImpact: StashImpact;
+};
+
 export type RecycleBatch = {
   id: string;
   createdAt: string;

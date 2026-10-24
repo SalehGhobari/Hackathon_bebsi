@@ -136,6 +136,11 @@ function registerIpc() {
     dataUrl: store.stashPhotoDataUrl((payload as { id: string }).id),
   }));
 
+  handle("recycle:estimate", (payload) => {
+    const { name, category, quantity } = payload as { name: string; category?: string; quantity?: number };
+    return store.estimateRecycle(name, category, quantity);
+  });
+
   handle("recycle:pdf", async (payload) => {
     const { recyclerId, itemIds, note, lang } = payload as {
       recyclerId: string;

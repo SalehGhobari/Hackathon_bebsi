@@ -23,6 +23,9 @@ const state = {
   aiStatus: null,
   replaceItem: null,
   editingId: null,
+  editOriginalTitle: null,
+  recycleEstimate: null,
+  editEstimate: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -60,8 +63,13 @@ function money(n) {
   return Number(n).toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
 
+function weight(n) {
+  if (n === null || n === undefined) return "—";
+  return Number(n).toLocaleString("en-US", { maximumFractionDigits: n < 10 ? 2 : 1 });
+}
+
 function kg(n) {
-  return `${money(n)} kg`;
+  return `${weight(n)} kg`;
 }
 
 function statusFor(score) {
@@ -134,6 +142,7 @@ async function boot() {
     }
     state.ledger = await call(api.ledger());
     if ($("#recycleDate")) $("#recycleDate").value = todayIso();
+    renderRecycleEstimate();
     await refreshStash();
     await refreshDevices();
     renderAll();
@@ -223,24 +232,35 @@ function bind() {
     }
   });
 
+  $("#recycleTitle").addEventListener("input", scheduleRecycleEstimate);
+  $("#recycleQty").addEventListener("input", scheduleRecycleEstimate);
+  $("#recycleCategory").addEventListener("change", scheduleRecycleEstimate);
+
   $("#recycleForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const title = $("#recycleTitle").value.trim();
     if (!title) return;
+    const quantity = Number($("#recycleQty").value) || 1;
+    const selectedCategory = $("#recycleCategory").value;
     try {
+      const est = await call(api.estimateRecycle(title, selectedCategory, quantity));
+      const category = selectedCategory === "other" ? est.category : selectedCategory;
       await call(
         api.addStash({
           kind: "recycle",
           source: "manual",
           title,
-          category: $("#recycleCategory").value,
-          quantity: Number($("#recycleQty").value) || 1,
+          category,
+          quantity,
           addedAt: $("#recycleDate").value || undefined,
+          impact: est.unitImpact,
         }),
       );
       $("#recycleTitle").value = "";
       $("#recycleQty").value = "1";
       $("#recycleDate").value = todayIso();
+      state.recycleEstimate = null;
+      renderRecycleEstimate();
       await refreshStash();
       toast(t("toast.stashed"));
     } catch (err) {
@@ -342,6 +362,10 @@ function bind() {
   });
 
   $("#editSave").addEventListener("click", saveEdit);
+  $("#editEstimateBtn").addEventListener("click", runEditEstimate);
+  $("#editTitle").addEventListener("input", scheduleEditEstimate);
+  $("#editQty").addEventListener("input", scheduleEditEstimate);
+  $("#editCategory").addEventListener("change", scheduleEditEstimate);
   $("#editCancel").addEventListener("click", closeEdit);
   $("#editClose").addEventListener("click", closeEdit);
   $("#editModal").addEventListener("click", (event) => {
@@ -908,6 +932,15 @@ function stashItemCard(item) {
         </div>
         ${item.detail ? `<div class="muted small">${esc(item.detail)}</div>` : ""}
         <div class="muted small">${esc(bits.join(" · "))}</div>
+        ${
+          item.kind === "recycle" && item.impact.materials?.length
+            ? `<details class="stash-materials"><summary>Materials · ${weight(
+                item.impact.materials.reduce((n, m) => n + m.grams, 0),
+              )} g</summary><div class="chips">${item.impact.materials
+                .map((m) => `<span class="chip">${esc(m.name)} · ${money(m.grams)} g</span>`)
+                .join("")}</div></details>`
+            : ""
+        }
         ${replaced}
         <textarea class="stash-notes" data-notes="${esc(item.id)}" rows="1" placeholder="Notes…">${esc(item.notes)}</textarea>
       </div>
@@ -954,7 +987,7 @@ function renderRecycleSummary() {
   $("#recycleSummary").innerHTML = `
     <div class="manifest-stats">
       <div class="stat"><div class="value">${totals.items}</div><div class="k">items</div></div>
-      <div class="stat"><div class="value">${money(totals.kg)}<span class="unit">kg</span></div><div class="k">diverted</div></div>
+      <div class="stat"><div class="value">${weight(totals.kg)}<span class="unit">kg</span></div><div class="k">diverted</div></div>
       <div class="stat"><div class="value">${money(totals.co2e)}<span class="unit">kg</span></div><div class="k">CO2e avoided</div></div>
     </div>
     <div class="chips">${
@@ -1062,10 +1095,95 @@ function renderReplaceTarget() {
   el.classList.remove("hidden");
 }
 
+function estimateBadge(confidence) {
+  const cls = confidence === "high" ? "mint" : confidence === "low" ? "red" : "sand";
+  return `<span class="badge ${cls}">${confidence} confidence</span>`;
+}
+
+function materialsChips(materials) {
+  const mats = (materials ?? []).filter((m) => m.grams > 0);
+  return mats.length
+    ? `<div class="chips">${mats.map((m) => `<span class="chip">${esc(m.name)} · ${money(m.grams)} g</span>`).join("")}</div>`
+    : "";
+}
+
+function impactLine(impact, basis = "") {
+  return `<div class="estimate-head"><strong>${weight(impact.kgDiverted)} kg</strong>${
+    basis ? `<span class="muted small">${esc(basis)}</span>` : ""
+  }</div>${materialsChips(impact.materials)}`;
+}
+
+function renderEstimateHtml(est) {
+  return `<div class="estimate-head">${estimateBadge(est.confidence)}<strong>${weight(est.impact.kgDiverted)} kg</strong><span class="muted small">${esc(est.basis)}</span></div>${materialsChips(est.impact.materials)}`;
+}
+
+function renderRecycleEstimate() {
+  const el = $("#recycleEstimate");
+  if (!el) return;
+  if (!state.recycleEstimate) {
+    el.innerHTML = '<span class="muted small">Type a name to estimate its weight and materials.</span>';
+    return;
+  }
+  el.innerHTML = renderEstimateHtml(state.recycleEstimate);
+}
+
+let recycleEstimateTimer = null;
+function scheduleRecycleEstimate() {
+  clearTimeout(recycleEstimateTimer);
+  recycleEstimateTimer = setTimeout(runRecycleEstimate, 350);
+}
+
+async function runRecycleEstimate() {
+  const name = $("#recycleTitle").value.trim();
+  if (!name) {
+    state.recycleEstimate = null;
+    renderRecycleEstimate();
+    return;
+  }
+  try {
+    const est = await call(
+      api.estimateRecycle(name, $("#recycleCategory").value, Number($("#recycleQty").value) || 1),
+    );
+    if (name !== $("#recycleTitle").value.trim()) return;
+    state.recycleEstimate = est;
+    renderRecycleEstimate();
+  } catch {
+    state.recycleEstimate = null;
+    renderRecycleEstimate();
+  }
+}
+
+let editEstimateTimer = null;
+function scheduleEditEstimate() {
+  if (!state.editingId) return;
+  const item = state.stash.find((i) => i.id === state.editingId);
+  if (!item || item.kind !== "recycle" || item.source !== "manual") return;
+  clearTimeout(editEstimateTimer);
+  editEstimateTimer = setTimeout(runEditEstimate, 350);
+}
+
+async function runEditEstimate() {
+  if (!state.editingId) return;
+  const title = $("#editTitle").value.trim();
+  if (!title) return;
+  const hint = title !== state.editOriginalTitle ? "other" : $("#editCategory").value;
+  try {
+    const est = await call(
+      api.estimateRecycle(title, hint, Number($("#editQty").value) || 1),
+    );
+    if (state.editingId !== null && title !== $("#editTitle").value.trim()) return;
+    state.editEstimate = est;
+    $("#editEstimate").innerHTML = renderEstimateHtml(est);
+  } catch {
+    /* keep the current estimate if the model lookup fails */
+  }
+}
+
 function openEdit(id) {
   const item = state.stash.find((i) => i.id === id);
   if (!item) return;
   state.editingId = id;
+  state.editOriginalTitle = item.title;
   $("#editTitle").value = item.title;
   $("#editCategory").value = item.category;
   if (!$("#editCategory").value) {
@@ -1081,6 +1199,12 @@ function openEdit(id) {
   $("#editNotes").value = item.notes;
   $("#editMarketWrap").classList.toggle("hidden", item.kind !== "replace");
   $("#editMarketCategory").value = item.marketCategory ?? "";
+  $("#editEstimateWrap").classList.toggle("hidden", item.kind !== "recycle");
+  state.editEstimate = null;
+  if (item.kind === "recycle") {
+    $("#editEstimate").innerHTML = impactLine(item.impact, "current estimate");
+    if (item.source === "manual") scheduleEditEstimate();
+  }
   $("#editMeta").textContent = `${item.kind === "recycle" ? "Recycle" : "Replace"} · ${sourceLabel(item.source)} · ${statusLabel(item.status)}`;
   $("#editModal").classList.remove("hidden");
   $("#editTitle").focus();
@@ -1088,6 +1212,8 @@ function openEdit(id) {
 
 function closeEdit() {
   state.editingId = null;
+  state.editOriginalTitle = null;
+  state.editEstimate = null;
   $("#editModal").classList.add("hidden");
 }
 
@@ -1100,18 +1226,29 @@ async function saveEdit() {
     toast("A title is required.", "error");
     return;
   }
-  const category = $("#editCategory").value;
+  let category = $("#editCategory").value;
+  const quantity = Number($("#editQty").value) || 1;
   const marketCats = ["ram", "ssd", "hdd", "battery", "charger", "cooling", "gpu", "laptop", "desktop"];
   const selectedMarket = $("#editMarketCategory").value;
-  const marketCategory = existing.kind === "replace" ? selectedMarket || (marketCats.includes(category) ? category : null) : null;
+  let marketCategory = existing.kind === "replace" ? selectedMarket || (marketCats.includes(category) ? category : null) : null;
+  let impact = null;
+  if (existing.kind === "recycle" && (state.editEstimate || existing.source === "manual")) {
+    const titleChanged = title !== state.editOriginalTitle;
+    const hint = titleChanged ? "other" : category;
+    const est = await call(api.estimateRecycle(title, hint, quantity));
+    if (titleChanged || category === "other") category = est.category;
+    marketCategory = null;
+    impact = est.impact;
+  }
   const addedDate = $("#editDate").value;
   const patch = {
     title,
     category,
     detail: $("#editDetail").value,
-    quantity: Number($("#editQty").value) || 1,
+    quantity,
     notes: $("#editNotes").value,
     marketCategory,
+    ...(impact ? { impact } : {}),
     ...(addedDate && addedDate !== isoDateOnly(existing.createdAt) ? { createdAt: addedDate } : {}),
     ...(category !== existing.category ? { requirements: null } : {}),
   };
@@ -1451,7 +1588,7 @@ function renderLedger() {
   $("#ledgerStats").innerHTML = `
     <div class="stat"><div class="value">${l.stashedRecycle ?? 0}</div><div class="k">to recycle</div></div>
     <div class="stat"><div class="value">${l.stashedReplace ?? 0}</div><div class="k">to replace</div></div>
-    <div class="stat"><div class="value">${money(l.kgDiverted)}<span class="unit">kg</span></div><div class="k">diverted</div></div>
+    <div class="stat"><div class="value">${weight(l.kgDiverted)}<span class="unit">kg</span></div><div class="k">diverted</div></div>
     <div class="stat"><div class="value">${money(l.co2eAvoidedKg)}<span class="unit">kg</span></div><div class="k">CO2e avoided</div></div>`;
 
   const mats = (l.materials ?? []).filter((m) => m.grams > 0);

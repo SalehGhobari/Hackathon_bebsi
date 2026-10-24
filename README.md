@@ -165,8 +165,8 @@ Key design rules:
    component (whole device, battery, each drive, memory, cooling) as a stash candidate.
 2. **Stash.** Choose **Recycle** or **Replace** for each candidate, or add something manually. Replace items keep the
    detected requirements (DDR generation, SO-DIMM/DIMM, NVMe/SATA) so the market can score compatibility. Every stash
-   row can be edited — title, category, detail, quantity, notes and date added. Changing category or quantity
-   recomputes the mass/material estimate.
+   row can be edited — title, category, detail, quantity, notes and date added. Typing a name estimates its weight
+   and recoverable materials (high/medium/low confidence); changing category or quantity recomputes the estimate.
 
    ![Scan and stash](docs/scan-stash.png)
 3. **Replace.** Open an item in the Replace tab to search the OpenSooq index. **AI compatible parts** sends the item

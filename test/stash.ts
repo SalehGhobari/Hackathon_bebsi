@@ -19,6 +19,19 @@ async function main() {
   const legacy = new Store(legacyDir);
   assert.equal(legacy.prices().length, 20, "an empty price book should be repaired");
 
+  const ssd = store.estimateRecycle("Samsung 980 Pro 1TB NVMe SSD", "other", 2);
+  assert.equal(ssd.category, "ssd");
+  assert.equal(ssd.confidence, "high");
+  assert.ok(ssd.impact.kgDiverted > 0.1 && ssd.impact.kgDiverted < 0.3);
+  assert.ok(ssd.impact.materials.some((m) => m.name === "Copper"));
+
+  const phone = store.estimateRecycle("iPhone 13", "other", 2);
+  assert.equal(phone.category, "phone");
+  assert.ok(phone.impact.kgDiverted > 0.3 && phone.impact.kgDiverted < 0.6);
+
+  const unknown = store.estimateRecycle("mystery object", "other", 1);
+  assert.equal(unknown.confidence, "low");
+
   const scan = await store.scan({ demo: true });
   const candidates = store.candidates(scan.device.id);
   assert.ok(candidates.length > 0, "a demo scan should offer stash candidates");

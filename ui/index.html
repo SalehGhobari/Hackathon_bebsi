@@ -274,6 +274,7 @@
               <input id="recycleDate" type="date" aria-label="Date added" />
               <button class="ghost" type="submit" data-i18n="recycle.add">Add</button>
             </form>
+            <div id="recycleEstimate" class="estimate-preview"><span class="muted small">Type a name to estimate its weight and materials.</span></div>
             <div id="recycleList" class="stash-list"></div>
           </div>
 
@@ -452,6 +453,14 @@
               <option value="desktop">Desktop</option>
             </select>
           </label>
+        </div>
+
+        <div id="editEstimateWrap" class="edit-full hidden">
+          <span>Weight &amp; materials</span>
+          <div class="estimate-edit-row">
+            <button id="editEstimateBtn" class="ghost mini" type="button">Estimate from name</button>
+            <div id="editEstimate" class="estimate-preview"></div>
+          </div>
         </div>
 
         <label class="edit-full">
