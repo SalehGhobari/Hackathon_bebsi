@@ -50,12 +50,19 @@ async function call(promise) {
 }
 
 let toastTimer = null;
+function setBtnLabel(btn, text) {
+  if (!btn) return;
+  const span = btn.querySelector("span");
+  if (span) span.textContent = text;
+  else btn.textContent = text;
+}
+
 function toast(message, kind = "ok") {
   const el = $("#toast");
   el.textContent = message;
   el.className = `toast ${kind === "error" ? "error" : ""}`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.add("hidden"), 4600);
+  toastTimer = setTimeout(() => el.classList.add("hidden"), 3400);
 }
 
 function money(n) {
@@ -516,9 +523,9 @@ async function onNotesBlur(event) {
 
 async function doLocalScan(demo = false) {
   const btn = $("#scanLocalBtn");
-  const label = btn.textContent;
+  const label = btn.querySelector("span")?.textContent ?? btn.textContent;
   btn.disabled = true;
-  btn.textContent = "Reading hardware…";
+  setBtnLabel(btn, t("scan.running"));
   try {
     const data = await call(api.scan(demo));
     state.view = data;
@@ -532,7 +539,7 @@ async function doLocalScan(demo = false) {
     toast(err.message, "error");
   } finally {
     btn.disabled = false;
-    btn.textContent = label;
+    setBtnLabel(btn, label);
   }
 }
 
@@ -812,6 +819,7 @@ function renderScan() {
   if (!state.view) {
     box.innerHTML = `
       <div class="card empty-inline">
+        <svg class="icon" aria-hidden="true" style="width:26px;height:26px;color:var(--mint);margin-bottom:8px"><use href="#i-scan" /></svg>
         <h2>Start with this machine</h2>
         <p class="muted small">Scan the PC to see its battery, drives, memory and cooling. Every part is offered as a recycle or replace action.</p>
       </div>`;
@@ -834,12 +842,18 @@ function renderScan() {
               (g) => `
             <div class="candidate">
               <div>
-                <strong>${esc(g.title)}</strong>
+                <strong dir="auto">${esc(g.title)}</strong>
                 <div class="muted small">${esc(g.detail)}</div>
               </div>
               <div class="candidate-actions">
-                ${g.kinds.includes("recycle") ? `<button class="ghost mini" data-candidate="${esc(g.key)}" data-kind="recycle">Recycle</button>` : ""}
-                ${g.kinds.includes("replace") ? `<button class="primary mini" data-candidate="${esc(g.key)}" data-kind="replace">Replace</button>` : ""}
+                ${
+                  g.kinds.includes("recycle") || g.kinds.includes("replace")
+                    ? `<div class="seg">
+                        ${g.kinds.includes("recycle") ? `<button class="seg-btn" data-candidate="${esc(g.key)}" data-kind="recycle"><svg class="icon" aria-hidden="true"><use href="#i-recycle" /></svg>Recycle</button>` : ""}
+                        ${g.kinds.includes("replace") ? `<button class="seg-btn" data-candidate="${esc(g.key)}" data-kind="replace"><svg class="icon" aria-hidden="true"><use href="#i-replace" /></svg>Replace</button>` : ""}
+                      </div>`
+                    : ""
+                }
               </div>
             </div>`,
             )
@@ -850,6 +864,9 @@ function renderScan() {
 
   renderDiscovery("usbResults", "usbNotes", state.usb, "No removable drives or USB peripherals found.");
   renderDiscovery("lanResults", "lanNotes", state.lan, "No other devices answered on the local network.");
+
+  const discoveryRow = $("#discoveryRow");
+  if (discoveryRow) discoveryRow.classList.toggle("hidden", !state.usb && !state.lan);
 }
 
 function groupCandidates(candidates) {
@@ -877,12 +894,14 @@ function renderDiscovery(resultsId, notesId, discovery, emptyText) {
           (d) => `
       <div class="candidate">
         <div>
-          <strong>${esc(d.title)}</strong>
+          <strong dir="auto">${esc(d.title)}</strong>
           <div class="muted small">${esc(d.detail)}</div>
         </div>
         <div class="candidate-actions">
-          <button class="ghost mini" data-discovery="${esc(d.id)}" data-kind="recycle">Recycle</button>
-          <button class="primary mini" data-discovery="${esc(d.id)}" data-kind="replace">Replace</button>
+          <div class="seg">
+            <button class="seg-btn" data-discovery="${esc(d.id)}" data-kind="recycle"><svg class="icon" aria-hidden="true"><use href="#i-recycle" /></svg>Recycle</button>
+            <button class="seg-btn" data-discovery="${esc(d.id)}" data-kind="replace"><svg class="icon" aria-hidden="true"><use href="#i-replace" /></svg>Replace</button>
+          </div>
         </div>
       </div>`,
         )
@@ -925,7 +944,7 @@ function stashItemCard(item) {
       <div class="stash-thumb">${photo ? `<img src="${photo}" alt="">` : `<span>${esc(item.category.slice(0, 2).toUpperCase())}</span>`}</div>
       <div class="stash-main">
         <div class="stash-head">
-          <strong>${esc(item.title)}</strong>
+          <strong dir="auto">${esc(item.title)}</strong>
           <span class="badge ${item.status === "recycled" ? "mint" : item.status === "replaced" ? "blue" : "sand"}">${statusLabel(item.status)}</span>
           <span class="badge">${sourceLabel(item.source)}</span>
           <span class="badge">Added ${new Date(item.createdAt).toLocaleDateString()}</span>
@@ -952,7 +971,7 @@ function stashItemCard(item) {
         }
         ${
           item.status === "stashed" && item.kind === "replace"
-            ? `<button class="primary mini" data-find-parts="${esc(item.id)}">Find parts</button>
+            ? `<button class="soft mini" data-find-parts="${esc(item.id)}"><svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>Find parts</button>
                <button class="ghost mini" data-mark-replaced="${esc(item.id)}">Mark replaced</button>`
             : ""
         }
@@ -1374,7 +1393,7 @@ function listingRow(l) {
   return `
     <div class="listing">
       <div class="listing-main">
-        <div class="listing-title ${rtl ? "rtl" : ""}" ${rtl ? 'lang="ar" dir="rtl"' : ""}>${esc(l.title)}</div>
+        <div class="listing-title ${rtl ? "rtl" : ""}" dir="auto" ${rtl ? 'lang="ar"' : ""}>${esc(l.title)}</div>
         <div class="chips">
           ${l.tags.map((tag) => `<span class="chip">${esc(tag)}</span>`).join("")}
           ${l.outlier ? `<span class="badge red">${t("market.outlier")}</span>` : ""}
@@ -1393,9 +1412,11 @@ function listingRow(l) {
             ? `<button class="thumb" data-view-photo="${esc(l.id)}" title="${t("market.viewPhoto")}"><img src="${state.photos.get(l.id)}" alt="Listing photo" /></button>`
             : ""
         }
-        ${l.imageUrl ? `<button class="ghost mini" data-view-photo="${esc(l.id)}">${t("market.viewPhoto")}</button>` : ""}
-        ${state.replaceItem ? `<button class="primary mini" data-use-listing="${esc(l.id)}">Use this part</button>` : ""}
-        <a href="${esc(l.url)}" target="_blank" rel="noreferrer">${t("market.open")}</a>
+        ${state.replaceItem ? `<button class="soft mini" data-use-listing="${esc(l.id)}"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Use this part</button>` : ""}
+        <div class="listing-links">
+          ${l.imageUrl ? `<button class="linklike" data-view-photo="${esc(l.id)}"><svg class="icon" aria-hidden="true"><use href="#i-photo" /></svg>${t("market.viewPhoto")}</button>` : ""}
+          <a href="${esc(l.url)}" target="_blank" rel="noreferrer">${t("market.open")}<svg class="icon" aria-hidden="true"><use href="#i-external" /></svg></a>
+        </div>
       </div>
     </div>`;
 }
