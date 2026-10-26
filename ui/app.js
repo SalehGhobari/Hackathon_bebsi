@@ -887,6 +887,23 @@ async function runLiveQuery() {
   btn.disabled = true;
   btn.textContent = t("market.querying");
   if (note) note.textContent = "";
+
+  // A new live query is a new intent, so stale filters from the previous view
+  // are cleared. Otherwise a leftover category filter hides every result and
+  // the search looks broken.
+  const reset = [
+    ["#mSearch", ""],
+    ["#mCategory", "all"],
+    ["#mCondition", "all"],
+    ["#mMax", ""],
+  ];
+  for (const [sel, value] of reset) {
+    const el = $(sel);
+    if (el) el.value = value;
+  }
+  state.aiFilters = null;
+  state.aiEngine = null;
+
   try {
     const res = await call(api.searchMarket(term, marketTarget()));
     state.market = res.market;
