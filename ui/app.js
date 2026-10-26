@@ -778,12 +778,12 @@ function renderSidebar() {
   const activeRecycle = state.stash.filter((i) => i.kind === "recycle" && i.status === "stashed").length;
   const activeReplace = state.stash.filter((i) => i.kind === "replace" && i.status === "stashed").length;
   $("#stashSummary").innerHTML = `
-    <button class="stash-pill" data-goto="recycle"><strong>${activeRecycle}</strong> to recycle</button>
-    <button class="stash-pill" data-goto="replace"><strong>${activeReplace}</strong> to replace</button>`;
+    <button class="stash-pill" data-goto="recycle"><strong>${activeRecycle}</strong> ${t("stash.toRecycle")}</button>
+    <button class="stash-pill" data-goto="replace"><strong>${activeReplace}</strong> ${t("stash.toReplace")}</button>`;
 
   const list = $("#deviceList");
   if (!state.devices.length) {
-    list.innerHTML = '<p class="tiny">No devices scanned yet.</p>';
+    list.innerHTML = `<p class="tiny">${t("side.none")}</p>`;
     return;
   }
   list.innerHTML = state.devices

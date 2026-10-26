@@ -23,7 +23,7 @@ function createWindow() {
     height: 840,
     minWidth: 940,
     minHeight: 620,
-    backgroundColor: "#0b0f12",
+    backgroundColor: "#17130f",
     title: "Fahes — recycle & replace",
     icon: app.isPackaged ? undefined : appIcon,
     show: false,
@@ -229,7 +229,7 @@ function registerIpc() {
       margin: 1,
       width: 280,
       errorCorrectionLevel: "M",
-      color: { dark: "#0b0f12", light: "#ffffff" },
+      color: { dark: "#17130f", light: "#fffdf8" },
     });
     return { passport, qr, compact: compactForQr(passport) };
   });
