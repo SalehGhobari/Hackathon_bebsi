@@ -1,19 +1,58 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, safeStorage, shell } from "electron";
 import type { OpenDialogOptions, SaveDialogOptions } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
 import QRCode from "qrcode";
-import { Store } from "../lib/store";
+import { Store, type SecretBox } from "../lib/store";
 import { compactForQr, verifyPassport } from "../lib/passport";
 import { renderPassportHtml } from "./passport-pdf";
 import { aiSearch, aiStatus } from "../lib/ai";
+import { Deepseek, DeepseekError, DEFAULT_MODEL } from "../lib/deepseek";
 import { scanConnected } from "../lib/detect/connected";
 import { scanLan } from "../lib/detect/lan";
 import { renderRecycleHtml } from "./recycle-pdf";
 
 let store: Store;
+let deepseek: Deepseek;
 let win: BrowserWindow | null = null;
+
+/**
+ * Wrap Electron's safeStorage as the store's SecretBox. On Linux without a
+ * keyring `isEncryptionAvailable()` is false; we then keep the key obfuscated
+ * only and report that honestly through `deepseek:status` instead of implying
+ * the key is protected.
+ */
+function makeSecretBox(): SecretBox {
+  const usable = (() => {
+    try {
+      return safeStorage.isEncryptionAvailable();
+    } catch {
+      return false;
+    }
+  })();
+
+  return {
+    encrypted: usable,
+    encrypt: (plain) => {
+      if (!usable) return Buffer.from(plain, "utf8").toString("base64");
+      try {
+        return safeStorage.encryptString(plain).toString("base64");
+      } catch {
+        return Buffer.from(plain, "utf8").toString("base64");
+      }
+    },
+    decrypt: (blob) => {
+      try {
+        const buf = Buffer.from(blob, "base64");
+        if (!usable) return buf.toString("utf8");
+        return safeStorage.decryptString(buf);
+      } catch {
+        return null;
+      }
+    },
+  };
+}
 
 const appIcon = path.join(__dirname, "../../build/icon.png");
 
@@ -215,6 +254,115 @@ function registerIpc() {
     return aiSearch(query, lang === "ar" ? "ar" : "en");
   });
 
+  /* ---------------- optional DeepSeek integration ---------------- */
+
+  handle("deepseek:status", () => deepseek.status());
+
+  handle("deepseek:setKey", (payload) => {
+    const { key } = payload as { key: string };
+    return deepseek.setKey(key);
+  });
+
+  handle("deepseek:clearKey", () => deepseek.clearKey());
+
+  handle("deepseek:setModel", (payload) => {
+    const { model } = payload as { model?: string };
+    const next = deepseek.setModel(model ?? DEFAULT_MODEL);
+    store.writeSecretModel(next.model);
+    return next;
+  });
+
+  /**
+   * Rank real rows against a stashed item. The candidate set is built here, in
+   * the main process, straight from the store — the renderer never supplies the
+   * set, so it cannot be widened, and the model can only answer with ids from it.
+   */
+  handle("deepseek:match", async (payload) => {
+    const { stashId, mode, lang } = payload as {
+      stashId: string;
+      mode: "opensooq" | "retail";
+      lang?: "en" | "ar";
+    };
+
+    const item = store.stashItem(stashId);
+    if (!item) throw new DeepseekError("That stash item no longer exists.", "config");
+
+    const requirements = item.requirements
+      ? [item.requirements.ramGen, item.requirements.ramForm, item.requirements.storageBus, item.requirements.storageForm]
+          .filter(Boolean)
+          .join(" · ")
+      : null;
+
+    const subject = {
+      title: item.title,
+      category: item.category,
+      detail: item.detail,
+      requirements,
+    };
+
+    if (mode === "retail") {
+      const rows = store.prices();
+      const result = await deepseek.match(
+        subject,
+        rows.map((row) => ({
+          id: row.id,
+          title: row.item,
+          priceJod: row.low,
+          category: row.category,
+          spec: row.spec,
+          condition: row.kind,
+        })),
+        "retail",
+        lang === "ar" ? "ar" : "en",
+      );
+      return { mode, result, rows };
+    }
+
+    const market = store.market({ stashId });
+    const listings = market.listings
+      .filter((l) => !l.outlier)
+      .map((l) => ({
+        id: l.id,
+        title: l.title,
+        priceJod: l.priceJod,
+        category: l.category,
+        condition: l.condition,
+        city: l.area ?? null,
+      }));
+
+    const result = await deepseek.match(subject, listings, "opensooq", lang === "ar" ? "ar" : "en");
+    return { mode, result, listings: market.listings };
+  });
+
+  handle("deepseek:physical", async (payload) => {
+    const { stashId, lang, save } = payload as {
+      stashId: string;
+      lang?: "en" | "ar";
+      save?: boolean;
+    };
+    const item = store.stashItem(stashId);
+    if (!item) throw new DeepseekError("That stash item no longer exists.", "config");
+
+    const spec = await deepseek.physical(
+      { title: item.title, category: item.category, detail: item.detail },
+      lang === "ar" ? "ar" : "en",
+    );
+
+    // `save: false` is used for a dry look-up so the user can compare the two
+    // estimates before committing to one.
+    return save === false ? { spec, item } : { spec, item: store.setAiPhysical(stashId, spec) };
+  });
+
+  handle("deepseek:applyPhysical", (payload) => {
+    const { stashId } = payload as { stashId: string };
+    return store.applyAiPhysical(stashId);
+  });
+
+  handle("deepseek:clearPhysical", (payload) => {
+    const { stashId } = payload as { stashId: string };
+    return store.setAiPhysical(stashId, null);
+  });
+
 
   handle("wipe:add", (payload) => {
     const { deviceId, method, disk } = payload as { deviceId: string; method: string; disk: string };
@@ -290,7 +438,15 @@ app.whenReady().then(() => {
 
   try {
     const { app: electronApp } = require("electron") as typeof import("electron");
-    store = new Store(path.join(electronApp.getPath("userData")));
+    store = new Store(path.join(electronApp.getPath("userData")), makeSecretBox());
+    deepseek = new Deepseek(
+      {
+        read: () => store.readSecret(),
+        write: (value) => store.writeSecret(value),
+        encrypted: () => store.secretsEncrypted(),
+      },
+      store.secretModel(),
+    );
   } catch (err) {
     console.error("Failed to open local store", err);
     throw err;

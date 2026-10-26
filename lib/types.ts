@@ -342,6 +342,59 @@ export type StashImpact = {
   materials: MaterialAmount[];
 };
 
+/**
+ * Physical description of a part. Sourced either from the deterministic
+ * name-based table in `lib/recycle/estimate.ts` or, when the user asks for it,
+ * from DeepSeek. The `source` field exists so the UI and the manifest can say
+ * where a number came from instead of presenting a guess as a measurement.
+ */
+export type PhysicalSpec = {
+  source: "local" | "deepseek";
+  confidence: "high" | "medium" | "low";
+  /** Unit mass in kg. Null when nothing sensible could be attributed. */
+  weightKg: number | null;
+  /** Free-form dimensions, e.g. "M.2 2280 · 22 × 80 × 2.4 mm". */
+  dimensions: string | null;
+  materials: MaterialAmount[];
+  /** How the figure was reached, shown next to it in the UI. */
+  basis: string;
+  model?: string;
+  /** ISO date the DeepSeek answer was received. */
+  fetchedAt?: string;
+};
+
+/** A single ranked match returned by DeepSeek against a closed candidate set. */
+export type DeepseekMatch = {
+  id: string;
+  /** 0-100. Clamped and re-derived from the returned ordering. */
+  score: number;
+  reason: string;
+  /** True when the model flagged it as the single best fit. */
+  best: boolean;
+};
+
+export type DeepseekMatchResult = {
+  matches: DeepseekMatch[];
+  keywords: string[];
+  summary: string;
+  model: string;
+  /** How many candidates the model was allowed to choose from. */
+  considered: number;
+  /** Ids the model returned that were not in the set we sent. */
+  rejected: number;
+  fetchedAt: string;
+};
+
+export type DeepseekStatus = {
+  /** True when an API key is stored. */
+  configured: boolean;
+  /** False when the key is only obfuscated, not encrypted (no OS keyring). */
+  encrypted: boolean;
+  model: string;
+  endpoint: string;
+  note: string;
+};
+
 export type StashItem = {
   id: string;
   kind: StashKind;
@@ -360,6 +413,13 @@ export type StashItem = {
   requirements: DeviceRequirements | null;
   marketCategory: MarketCategory | null;
   impact: StashImpact;
+  /**
+   * Optional DeepSeek physical description. Kept beside `impact` rather than
+   * merged into it so the deterministic estimate is never silently replaced.
+   * When present and chosen by the user it is what the manifest prints, always
+   * with a "DeepSeek estimate — unverified" label.
+   */
+  aiPhysical?: PhysicalSpec | null;
   replacedWith: { listingId: string; title: string; priceJod: number; url: string } | null;
   createdAt: string;
   updatedAt: string;

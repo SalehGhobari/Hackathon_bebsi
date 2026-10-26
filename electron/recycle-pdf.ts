@@ -24,6 +24,8 @@ export function renderRecycleHtml(batch: RecycleBatch, lang: "en" | "ar"): strin
     .map((m) => `<span class="chip">${esc(m.name)} · ${kg(m.grams)} g</span>`)
     .join("");
 
+  const aiCount = batch.items.filter((i) => i.aiPhysical).length;
+
   const rows = batch.items
     .map((item, index) => {
       const photo = item.photoDataUrl
@@ -38,7 +40,11 @@ export function renderRecycleHtml(batch: RecycleBatch, lang: "en" | "ar"): strin
           ${item.notes ? `<div class="notes">${esc(item.notes)}</div>` : ""}
           <div class="meta">${esc(item.category)} · ${t("source", "المصدر")}: ${esc(item.source)} · ${t("qty", "الكمية")}: ${item.quantity} · ${t("added", "أُضيف")}: ${new Date(item.createdAt).toLocaleDateString()}</div>
         </td>
-        <td class="mass">${kg(item.impact.kgDiverted)} kg</td>
+        <td class="mass">${kg(item.impact.kgDiverted)} kg${
+          item.aiPhysical
+            ? `<div class="prov">${t("DeepSeek estimate", "تقدير DeepSeek")}</div>`
+            : ""
+        }</td>
       </tr>`;
     })
     .join("");
@@ -66,6 +72,8 @@ export function renderRecycleHtml(batch: RecycleBatch, lang: "en" | "ar"): strin
   .stat { border: 1px solid #d8e0e5; border-radius: 7px; padding: 7px 9px; }
   .stat .n { font-size: 14pt; font-weight: 800; color: #0f766e; }
   .stat .l { font-size: 7.5pt; color: #5b6b76; }
+  .prov { font-size: 6.5pt; color: #a85c34; text-transform: uppercase; letter-spacing: .04em; margin-top: 1px; }
+  .prov-note { font-size: 7.5pt; color: #6f6455; margin: 6px 0 0; line-height: 1.45; }
   table { width: 100%; border-collapse: collapse; margin-top: 5px; }
   th { text-align: start; font-size: 7.5pt; color: #5b6b76; text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid #d8e0e5; padding: 4px 5px; }
   td { border-bottom: 1px solid #edf1f3; padding: 6px 5px; vertical-align: top; }
@@ -114,6 +122,14 @@ export function renderRecycleHtml(batch: RecycleBatch, lang: "en" | "ar"): strin
       </div>
       <h2>${t("Recoverable materials (estimate)", "المواد القابلة للاستعادة (تقدير)")}</h2>
       <div class="chips">${materials || `<span class="muted">${t("No material estimate", "لا يوجد تقدير للمواد")}</span>`}</div>
+      ${
+        aiCount
+          ? `<p class="prov-note">${t(
+              `${aiCount} item(s) use a DeepSeek estimate, marked in the table above. Those figures come from a language model, not a manufacturer teardown, and are unverified.`,
+              `${aiCount} عنصر/عناصر تستخدم تقدير DeepSeek، موسومة في الجدول أعلاه. هذه الأرقام من نموذج لغوي لا من تفكيك الشركة المصنّعة، وهي غير مُتحقّق منها.`,
+            )}</p>`
+          : ""
+      }
     </div>
   </div>
 

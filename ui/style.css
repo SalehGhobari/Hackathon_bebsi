@@ -136,7 +136,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--good); margin-top: 5px;
   box-shadow: 0 0 10px #a5a68666; flex: none;
+  transition: background .2s ease, box-shadow .2s ease;
 }
+/* amber once the optional DeepSeek matching is switched on */
+.dot.ds-on { background: var(--amber); box-shadow: 0 0 10px #d6a85566; }
 .tiny { color: var(--faint); font-size: var(--fs-micro); line-height: 1.5; word-break: break-word; }
 
 /* ---------- buttons ---------- */
@@ -726,6 +729,66 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .stash-materials { margin-top: 5px; font-size: var(--fs-micro); color: var(--muted); }
 .stash-materials summary { cursor: pointer; }
 .stash-materials .chips { margin: 5px 0 0; }
+
+/* ---------- optional DeepSeek integration ---------- */
+.ds-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--s-3); margin: var(--s-3) 0; }
+.ds-key input, .ds-model select { width: 100%; }
+.ds-warn { color: var(--amber); font-size: var(--fs-meta); }
+#dsNote { margin-top: var(--s-2); }
+
+.ds-match-card { border-color: var(--line-strong); }
+.ds-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--s-3); padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--line);
+}
+.ds-head strong { display: block; font-size: var(--fs-h3); margin: 2px 0; }
+.ds-matches { display: flex; flex-direction: column; }
+.ds-match {
+  display: grid; grid-template-columns: minmax(0, 1fr) 148px;
+  gap: var(--s-4); padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+.ds-match:last-child { border-bottom: none; padding-bottom: 0; }
+.ds-match-main { min-width: 0; }
+.ds-match-title { font-size: var(--fs-body); font-weight: 600; overflow-wrap: anywhere; line-height: 1.45; }
+.ds-reason {
+  margin-top: var(--s-1); font-size: var(--fs-micro); color: var(--muted);
+  border-inline-start: 2px solid var(--mint-dim); padding-inline-start: var(--s-2);
+}
+.ds-match-side {
+  display: flex; flex-direction: column; gap: 5px;
+  align-items: flex-end; text-align: end;
+}
+.ds-price {
+  font-size: var(--fs-h3); font-weight: 700; letter-spacing: -.3px;
+  font-variant-numeric: tabular-nums; direction: ltr; line-height: 1.2;
+}
+.ds-price small { font-size: var(--fs-micro); color: var(--muted); font-weight: 500; }
+
+.ds-target {
+  margin: var(--s-3) 0; padding: var(--s-2) 10px;
+  border: 1px dashed var(--line-strong); border-radius: var(--radius-sm);
+  background: var(--surface-3);
+}
+.ds-target strong { display: block; font-size: var(--fs-strong); margin: 2px 0; }
+.ds-result { margin-top: var(--s-3); }
+.ds-spec {
+  padding: var(--s-3); border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm); background: var(--surface-3);
+}
+.ds-spec-table { width: 100%; border-collapse: collapse; margin: var(--s-3) 0; font-size: var(--fs-meta); }
+.ds-spec-table th {
+  text-align: start; font-size: var(--fs-micro); font-weight: 500;
+  color: var(--muted); padding: 4px 6px;
+  border-bottom: 1px solid var(--line-strong);
+}
+.ds-spec-table td {
+  padding: 5px 6px; border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+.ds-spec-table tr:last-child td { border-bottom: none; }
+[dir="rtl"] .ds-spec-table th, [dir="rtl"] .ds-spec-table td { text-align: right; }
 
 /* ---------- scrollbars ---------- */
 * { scrollbar-width: thin; scrollbar-color: #4a3d34 transparent; }

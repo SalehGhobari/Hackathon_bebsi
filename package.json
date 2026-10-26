@@ -19,7 +19,8 @@
     "pack:linux": "npm run build:main && electron-builder --linux AppImage",
     "pack:win": "npm run build:main && electron-builder --win nsis",
     "pack:dir": "npm run build:main && electron-builder --dir",
-    "test:stash": "esbuild test/stash.ts --bundle --platform=node --format=cjs --outfile=dist/test-stash.cjs && node dist/test-stash.cjs"
+    "test:stash": "esbuild test/stash.ts --bundle --platform=node --format=cjs --outfile=dist/test-stash.cjs && node dist/test-stash.cjs",
+    "test:deepseek": "esbuild test/deepseek.ts --bundle --platform=node --format=cjs --outfile=dist/test-deepseek.cjs && node dist/test-deepseek.cjs"
   },
   "dependencies": {
     "qrcode": "^1.5.4"

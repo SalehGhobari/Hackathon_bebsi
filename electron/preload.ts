@@ -20,6 +20,17 @@ const api = {
   aiStatus: () => invoke("ai:status"),
   aiSearch: (query: string, lang?: string) => invoke("ai:search", { query, lang }),
 
+  deepseekStatus: () => invoke("deepseek:status"),
+  deepseekSetKey: (key: string) => invoke("deepseek:setKey", { key }),
+  deepseekClearKey: () => invoke("deepseek:clearKey"),
+  deepseekSetModel: (model: string) => invoke("deepseek:setModel", { model }),
+  deepseekMatch: (stashId: string, mode: "opensooq" | "retail", lang?: string) =>
+    invoke("deepseek:match", { stashId, mode, lang }),
+  deepseekPhysical: (stashId: string, lang?: string, save = true) =>
+    invoke("deepseek:physical", { stashId, lang, save }),
+  deepseekApplyPhysical: (stashId: string) => invoke("deepseek:applyPhysical", { stashId }),
+  deepseekClearPhysical: (stashId: string) => invoke("deepseek:clearPhysical", { stashId }),
+
   scanConnected: () => invoke("scan:connected"),
   scanLan: () => invoke("scan:lan"),
 

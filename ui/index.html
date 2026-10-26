@@ -240,6 +240,8 @@
 
           <div id="replaceTarget" class="target-banner hidden"></div>
 
+          <div id="dsMatch" class="card ds-match-card hidden"></div>
+
           <div class="card" id="marketCard">
             <div class="card-head">
               <h2 data-i18n="market.title">OpenSooq market index</h2>
@@ -347,6 +349,24 @@
             <div id="recycleList" class="stash-list"></div>
           </div>
 
+          <div class="card" id="dsPhysicalCard">
+            <div class="card-head">
+              <h2 data-i18n="ds.physicalTitle">Exact specs lookup (DeepSeek)</h2>
+              <span class="muted small" id="dsPhysicalState"></span>
+            </div>
+            <p class="muted small" data-i18n="ds.physicalIntro">
+              Asks DeepSeek for the weight, dimensions and recoverable materials of a part. This is an estimate
+              from a model, not a manufacturer teardown — it is labelled as such everywhere it appears.
+            </p>
+            <div id="dsPhysicalTarget" class="ds-target"></div>
+            <div class="manifest-actions">
+              <button id="dsPhysicalRun" class="soft" data-i18n="ds.lookup">Look up specs</button>
+              <button id="dsPhysicalApply" class="ghost" data-i18n="ds.useInManifest">Use in manifest</button>
+              <button id="dsPhysicalClear" class="ghost" data-i18n="ds.clearSpecs">Clear</button>
+            </div>
+            <div id="dsPhysicalResult" class="ds-result"></div>
+          </div>
+
           <div class="card">
             <div class="card-head"><h2 data-i18n="recycle.manifest">Recycling manifest</h2></div>
             <div class="form-row">
@@ -422,6 +442,37 @@
               <span class="muted small" id="recyclerCount"></span>
             </div>
             <div id="recyclerList" class="remedy-list"></div>
+          </div>
+
+          <div class="card" id="deepseekCard">
+            <div class="card-head">
+              <h2 data-i18n="ds.title">DeepSeek matching (optional)</h2>
+              <span class="muted small" id="dsState"></span>
+            </div>
+            <p class="muted small" data-i18n="ds.intro">
+              Off by default. When you use it, Fahes sends the part name, category and detected specs to
+              api.deepseek.com and asks it to pick from the listings and prices already stored on this machine.
+              It never returns a listing or a price of its own. Nothing else leaves the machine.
+            </p>
+            <div class="ds-row">
+              <label class="ds-key">
+                <span data-i18n="ds.key">API key</span>
+                <input id="dsKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-…" />
+              </label>
+              <label class="ds-model">
+                <span data-i18n="ds.model">Model</span>
+                <select id="dsModel">
+                  <option value="deepseek-chat">deepseek-chat</option>
+                  <option value="deepseek-reasoner">deepseek-reasoner</option>
+                </select>
+              </label>
+            </div>
+            <div class="manifest-actions">
+              <button id="dsSaveKey" class="soft" data-i18n="ds.save">Save key</button>
+              <button id="dsTestKey" class="ghost" data-i18n="ds.test">Test connection</button>
+              <button id="dsClearKey" class="ghost" data-i18n="ds.forget">Forget key</button>
+            </div>
+            <p id="dsNote" class="muted small"></p>
           </div>
 
           <div class="card">

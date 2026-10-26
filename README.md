@@ -84,6 +84,31 @@ Design rules:
 - Serials are hashed; delete the file to delete everything.
 - The renderer has no network or Node access.
 - The wipe record is an operator **attestation**, not cryptographic proof of erasure — the UI says so.
+- **Nothing leaves the machine unless you enable the optional DeepSeek matching** described below. There is no
+  telemetry, no account and no update ping.
+
+## Optional: DeepSeek matching
+
+Off by default, and the app is fully functional without it. When you turn it on, Fahes sends the part name, category
+and detected specs to `api.deepseek.com` and asks it to pick from data already on your machine. Nothing else is sent,
+and the renderer keeps `connect-src 'none'`.
+
+The integration is built so the model cannot invent a fact:
+
+- **Matching is a closed set.** The main process builds a numbered shortlist of real rows — OpenSooq listings or
+  price-book entries — and the model may only return ids from that shortlist. Anything else is counted and discarded
+  (the UI shows how many were dropped), so a hallucinated listing or price can never reach the screen.
+- **Prices are never requested.** They come from the rows we already hold.
+- **Physical specs are a labelled estimate.** Weight, dimensions and materials come back as a separate layer
+  (`aiPhysical`) and never overwrite the deterministic estimate. Where they appear — including the manifest PDF —
+  they carry a "DeepSeek estimate — unverified" label, and you have to explicitly choose to use them.
+
+The API key is stored through Electron's `safeStorage`. On a Linux box with no keyring that falls back to plaintext
+storage, and the Info tab says so rather than implying the key is encrypted.
+
+```bash
+npm run test:deepseek   # key round-trip, closed-set validation, aiPhysical layering (no network)
+```
 
 ## Build
 

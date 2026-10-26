@@ -23,6 +23,7 @@ import type {
   MarketResponse,
   MaterialAmount,
   Passport,
+  PhysicalSpec,
   PriceEntry,
   RawListing,
   RecycleBatch,
@@ -38,6 +39,24 @@ import type {
 
 const SEED_VERSION = 4;
 
+/**
+ * How the optional DeepSeek API key is protected at rest. Electron's
+ * `safeStorage` supplies a real implementation in the app; tests and any
+ * environment without a keyring fall back to plaintext, and the UI is told
+ * which one is in force rather than assuming encryption.
+ */
+export type SecretBox = {
+  encrypted: boolean;
+  encrypt: (plain: string) => string;
+  decrypt: (blob: string) => string | null;
+};
+
+const PLAIN_SECRETS: SecretBox = {
+  encrypted: false,
+  encrypt: (plain) => plain,
+  decrypt: (blob) => blob,
+};
+
 type Data = {
   devices: Device[];
   diagnostics: Diagnostic[];
@@ -46,6 +65,7 @@ type Data = {
   wipes: WipeRecord[];
   stash: StashItem[];
   seedVersion?: number;
+  deepseek?: { keyBlob: string | null; model: string };
 };
 
 const EMPTY: Data = {
@@ -87,7 +107,10 @@ export class Store {
   private marketData: MarketFile;
   private photosDir: string;
 
-  constructor(private dir: string) {
+  constructor(
+    private dir: string,
+    private secrets: SecretBox = PLAIN_SECRETS,
+  ) {
     fs.mkdirSync(dir, { recursive: true });
     this.file = path.join(dir, "fahes-data.json");
     this.marketFile = path.join(dir, "market.json");
@@ -510,6 +533,75 @@ export class Store {
 
   dataDir(): string {
     return this.dir;
+  }
+
+  /* ---------------- optional DeepSeek integration ---------------- */
+
+  /**
+   * Read the stored DeepSeek key. Returns null when nothing is stored or the
+   * blob can no longer be decrypted (for example after a keyring change).
+   */
+  readSecret(): string | null {
+    const blob = this.data.deepseek?.keyBlob;
+    if (!blob) return null;
+    const plain = this.secrets.decrypt(blob);
+    return plain && plain.trim() ? plain : null;
+  }
+
+  writeSecret(value: string | null): void {
+    this.data.deepseek = {
+      keyBlob: value ? this.secrets.encrypt(value) : null,
+      model: this.data.deepseek?.model ?? "deepseek-chat",
+    };
+    this.save();
+  }
+
+  secretModel(): string {
+    return this.data.deepseek?.model ?? "deepseek-chat";
+  }
+
+  writeSecretModel(model: string): void {
+    this.data.deepseek = { keyBlob: this.data.deepseek?.keyBlob ?? null, model };
+    this.save();
+  }
+
+  secretsEncrypted(): boolean {
+    return this.secrets.encrypted;
+  }
+
+  /**
+   * Attach or clear the DeepSeek physical description for a stash item. Stored
+   * beside the deterministic estimate, never merged into it.
+   */
+  setAiPhysical(id: string, spec: PhysicalSpec | null): StashItem | null {
+    const item = this.data.stash.find((i) => i.id === id);
+    if (!item) return null;
+    if (spec) item.aiPhysical = spec;
+    else delete item.aiPhysical;
+    item.updatedAt = new Date().toISOString();
+    this.save();
+    return item;
+  }
+
+  /**
+   * Replace the impact figures with a DeepSeek-derived estimate, for the user
+   * who has explicitly asked to use it in the manifest. The deterministic
+   * values are not recoverable after this, so the UI confirms first.
+   */
+  applyAiPhysical(id: string): StashItem | null {
+    const item = this.data.stash.find((i) => i.id === id);
+    if (!item?.aiPhysical) return null;
+    const spec = item.aiPhysical;
+    const q = Math.max(1, item.quantity);
+    const materials = spec.materials.map((m) => ({ name: m.name, grams: m.grams * q }));
+    item.impact = {
+      ...item.impact,
+      kgDiverted: roundImpact((spec.weightKg ?? item.impact.kgDiverted / q) * q),
+      materials: materials.length ? materials : item.impact.materials,
+    };
+    item.updatedAt = new Date().toISOString();
+    this.save();
+    return item;
   }
 
   async scan(options: { demo?: boolean } = {}): Promise<ScanResult> {
