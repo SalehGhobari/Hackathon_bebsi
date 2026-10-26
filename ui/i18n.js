@@ -2,6 +2,18 @@
 (function () {
   const DICT = {
     en: {
+      "ds.addSpecs": "Add specs",
+      "ds.refreshSpecs": "Refresh specs",
+      "ds.unverified": "DeepSeek estimate — unverified",
+      "ds.weight": "Weight",
+      "ds.dimensions": "Dimensions",
+      "ds.keyModalTitle": "DeepSeek API key",
+      "ds.keyModalBody": "Fahes will send the part name, category and detected specs to api.deepseek.com and ask it to choose from the listings and prices already on this machine. The key is stored locally and never shown again.",
+      "ds.saveAndUse": "Save and continue",
+      "ds.cancel": "Cancel",
+      "ds.pickReplaceItem": "Open an item with Find parts first, then match it.",
+      "ds.needAnItem": "Add a recycle or replacement item first.",
+      "ds.specsFailed": "Spec lookup failed:",
       "ds.title": "DeepSeek matching (optional)",
       "ds.intro": "Off by default. When you use it, Fahes sends the part name, category and detected specs to api.deepseek.com and asks it to pick from the listings and prices already stored on this machine. It never returns a listing or a price of its own. Nothing else leaves the machine.",
       "ds.key": "API key",
@@ -355,6 +367,18 @@
     },
 
     ar: {
+      "ds.addSpecs": "أضف المواصفات",
+      "ds.refreshSpecs": "حدّث المواصفات",
+      "ds.unverified": "تقدير DeepSeek — غير مُتحقّق منه",
+      "ds.weight": "الوزن",
+      "ds.dimensions": "الأبعاد",
+      "ds.keyModalTitle": "مفتاح DeepSeek API",
+      "ds.keyModalBody": "سيرسل فحص اسم القطعة والتصنيف والمواصفات المكتشفة إلى api.deepseek.com ويطلب اختيارها من الإعلانات والأسعار المخزّنة على هذا الجهاز. يُحفظ المفتاح محلياً ولا يظهر مرة أخرى.",
+      "ds.saveAndUse": "احفظ وتابع",
+      "ds.cancel": "إلغاء",
+      "ds.pickReplaceItem": "افتح عنصراً عبر «ابحث عن القطع» ثم طابقه.",
+      "ds.needAnItem": "أضف عنصر تدوير أو استبدال أولاً.",
+      "ds.specsFailed": "فشل بحث المواصفات:",
       "ds.title": "مطابقة DeepSeek (اختياري)",
       "ds.intro": "معطّلة افتراضياً. عند استخدامها يرسل فحص اسم القطعة والتصنيف والمواصفات المكتشفة إلى api.deepseek.com ويطلب اختيارها من الإعلانات والأسعار المخزّنة على هذا الجهاز. لا يعيد أي إعلان أو سعر من عنده، ولا يخرج من الجهاز أي شيء آخر.",
       "ds.key": "مفتاح API",

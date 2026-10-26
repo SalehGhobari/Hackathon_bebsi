@@ -349,24 +349,6 @@
             <div id="recycleList" class="stash-list"></div>
           </div>
 
-          <div class="card" id="dsPhysicalCard">
-            <div class="card-head">
-              <h2 data-i18n="ds.physicalTitle">Exact specs lookup (DeepSeek)</h2>
-              <span class="muted small" id="dsPhysicalState"></span>
-            </div>
-            <p class="muted small" data-i18n="ds.physicalIntro">
-              Asks DeepSeek for the weight, dimensions and recoverable materials of a part. This is an estimate
-              from a model, not a manufacturer teardown — it is labelled as such everywhere it appears.
-            </p>
-            <div id="dsPhysicalTarget" class="ds-target"></div>
-            <div class="manifest-actions">
-              <button id="dsPhysicalRun" class="soft" data-i18n="ds.lookup">Look up specs</button>
-              <button id="dsPhysicalApply" class="ghost" data-i18n="ds.useInManifest">Use in manifest</button>
-              <button id="dsPhysicalClear" class="ghost" data-i18n="ds.clearSpecs">Clear</button>
-            </div>
-            <div id="dsPhysicalResult" class="ds-result"></div>
-          </div>
-
           <div class="card">
             <div class="card-head"><h2 data-i18n="recycle.manifest">Recycling manifest</h2></div>
             <div class="form-row">
@@ -506,6 +488,26 @@
       </main>
     </div>
 
+
+    <div id="dsKeyModal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-card ds-key-card">
+        <button id="dsKeyClose" class="modal-close" aria-label="Close">×</button>
+        <h2 data-i18n="ds.keyModalTitle">DeepSeek API key</h2>
+        <p class="muted small" data-i18n="ds.keyModalBody">
+          Fahes will send the part name, category and detected specs to api.deepseek.com and ask it to choose from the
+          listings and prices already on this machine. The key is stored locally and never shown again.
+        </p>
+        <label class="edit-full">
+          <span data-i18n="ds.key">API key</span>
+          <input id="dsKeyModalInput" type="password" autocomplete="off" spellcheck="false" placeholder="sk-…" />
+        </label>
+        <p id="dsKeyModalError" class="small ds-warn hidden"></p>
+        <div class="modal-actions">
+          <button id="dsKeyCancel" class="ghost" data-i18n="ds.cancel">Cancel</button>
+          <button id="dsKeySave" class="primary" data-i18n="ds.saveAndUse">Save and continue</button>
+        </div>
+      </div>
+    </div>
 
     <div id="editModal" class="modal hidden" role="dialog" aria-modal="true">
       <div class="modal-card edit-card">

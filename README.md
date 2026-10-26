@@ -93,15 +93,26 @@ Off by default, and the app is fully functional without it. When you turn it on,
 and detected specs to `api.deepseek.com` and asks it to pick from data already on your machine. Nothing else is sent,
 and the renderer keeps `connect-src 'none'`.
 
+Two things it does:
+
+- **Matching.** In the Replace tab, *Match on OpenSooq* or *Match in retail* ranks a stashed item against the local
+  listings or the price book.
+- **Specs.** Every recycle item carries its own physical description. Add one with **Add specs**, or let it fill in
+  automatically: with a key stored, stashing something for recycling pulls its specs in on its own.
+
 The integration is built so the model cannot invent a fact:
 
 - **Matching is a closed set.** The main process builds a numbered shortlist of real rows — OpenSooq listings or
   price-book entries — and the model may only return ids from that shortlist. Anything else is counted and discarded
   (the UI shows how many were dropped), so a hallucinated listing or price can never reach the screen.
 - **Prices are never requested.** They come from the rows we already hold.
-- **Physical specs are a labelled estimate.** Weight, dimensions and materials come back as a separate layer
-  (`aiPhysical`) and never overwrite the deterministic estimate. Where they appear — including the manifest PDF —
-  they carry a "DeepSeek estimate — unverified" label, and you have to explicitly choose to use them.
+- **Specs are a labelled estimate.** Weight, dimensions and materials are stored on the item (`aiPhysical`) and shown
+  beside the deterministic estimate, never instead of it. Everywhere they appear — including the manifest PDF — they
+  carry a "DeepSeek estimate — unverified" label.
+- **Numbers are clamped.** An absurd weight, a negative material amount or an unrecognised confidence is corrected or
+  dropped before it is stored.
+
+`DEEPSEEK_BASE_URL` overrides the endpoint if you need to route through a proxy.
 
 The API key is stored through Electron's `safeStorage`. On a Linux box with no keyring that falls back to plaintext
 storage, and the Info tab says so rather than implying the key is encrypted.

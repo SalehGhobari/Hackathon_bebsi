@@ -28,7 +28,6 @@ const state = {
   editEstimate: null,
   dsStatus: null,
   dsMatch: null,
-  dsPhysicalTarget: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -206,7 +205,7 @@ function bind() {
     const title = $("#manualTitle").value.trim();
     if (!title) return;
     try {
-      await call(
+      const created = await call(
         api.addStash({
           kind: $("#manualKind").value,
           source: "manual",
@@ -219,6 +218,7 @@ function bind() {
       $("#manualQty").value = "1";
       await refreshStash();
       toast(t("toast.stashed"));
+      autoFetchSpecs(created);
     } catch (err) {
       toast(err.message, "error");
     }
@@ -260,7 +260,7 @@ function bind() {
     try {
       const est = await call(api.estimateRecycle(title, selectedCategory, quantity));
       const category = selectedCategory === "other" ? est.category : selectedCategory;
-      await call(
+      const created = await call(
         api.addStash({
           kind: "recycle",
           source: "manual",
@@ -278,6 +278,7 @@ function bind() {
       renderRecycleEstimate();
       await refreshStash();
       toast(t("toast.stashed"));
+      autoFetchSpecs(created);
     } catch (err) {
       toast(err.message, "error");
     }
@@ -310,6 +311,32 @@ function bind() {
     if (dsTarget) runDeepseekMatch(dsTarget.dataset.dsTarget);
   });
 
+  $("#dsKeySave").addEventListener("click", async () => {
+    const raw = $("#dsKeyModalInput").value.trim();
+    if (!raw) {
+      const box = $("#dsKeyModalError");
+      if (box) {
+        box.textContent = t("ds.keyPrompt");
+        box.classList.remove("hidden");
+      }
+      return;
+    }
+    if (await saveDeepseekKey(raw)) closeDsKeyModal(raw);
+  });
+
+  $("#dsKeyCancel").addEventListener("click", () => closeDsKeyModal(null));
+  $("#dsKeyClose").addEventListener("click", () => closeDsKeyModal(null));
+  $("#dsKeyModalInput").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      $("#dsKeySave").click();
+    }
+    if (event.key === "Escape") closeDsKeyModal(null);
+  });
+  $("#dsKeyModal").addEventListener("click", (event) => {
+    if (event.target === $("#dsKeyModal")) closeDsKeyModal(null);
+  });
+
   $("#dsMatch").addEventListener("click", (event) => {
     if (event.target.closest("[data-ds-close]")) {
       state.dsMatch = null;
@@ -327,14 +354,11 @@ function bind() {
       toast(t("ds.keyPrompt"), "error");
       return;
     }
-    try {
-      state.dsStatus = await call(api.deepseekSetKey(key));
+    if (await saveDeepseekKey(key)) {
       $("#dsKey").value = "";
-      renderDeepseekSettings();
-      renderDeepseekPhysical();
       toast(t("ds.keySaved"));
-    } catch (err) {
-      toast(err.message, "error");
+    } else {
+      toast($("#dsKeyModalError")?.textContent || t("ds.keyPrompt"), "error");
     }
   });
 
@@ -343,12 +367,13 @@ function bind() {
       toast(t("ds.needsKey"), "error");
       return;
     }
-    if (!state.replaceItem && !state.dsPhysicalTarget) {
-      toast(t("ds.pickItem"), "error");
+    const probe = state.replaceItem?.id ?? state.stash.find((i) => i.kind === "recycle")?.id;
+    if (!probe) {
+      toast(t("ds.needAnItem"), "error");
       return;
     }
     try {
-      if (state.dsPhysicalTarget) await call(api.deepseekPhysical(state.dsPhysicalTarget, window.I18N.lang, false));
+      await call(api.deepseekPhysical(probe, window.I18N.lang, false));
       toast(t("ds.testOk"));
     } catch (err) {
       toast(err.message, "error");
@@ -359,7 +384,7 @@ function bind() {
     try {
       state.dsStatus = await call(api.deepseekClearKey());
       renderDeepseekSettings();
-      renderDeepseekPhysical();
+      renderStashLists();
       toast(t("ds.keyCleared"));
     } catch (err) {
       toast(err.message, "error");
@@ -370,41 +395,6 @@ function bind() {
     try {
       state.dsStatus = await call(api.deepseekSetModel($("#dsModel").value));
       renderDeepseekSettings();
-    } catch (err) {
-      toast(err.message, "error");
-    }
-  });
-
-  /* DeepSeek physical lookup (Recycle tab) */
-  $("#dsPhysicalRun").addEventListener("click", runDeepseekPhysical);
-
-  $("#dsPhysicalApply").addEventListener("click", async () => {
-    const item = dsPhysicalTargetItem();
-    if (!item?.aiPhysical) {
-      toast(t("ds.noSpecs"), "error");
-      return;
-    }
-    try {
-      const updated = await call(api.deepseekApplyPhysical(item.id));
-      const idx = state.stash.findIndex((i) => i.id === item.id);
-      if (idx !== -1 && updated) state.stash[idx] = updated;
-      renderRecycle();
-      renderDeepseekPhysical();
-      toast(t("ds.applied"));
-    } catch (err) {
-      toast(err.message, "error");
-    }
-  });
-
-  $("#dsPhysicalClear").addEventListener("click", async () => {
-    const item = dsPhysicalTargetItem();
-    if (!item) return;
-    try {
-      const updated = await call(api.deepseekClearPhysical(item.id));
-      const idx = state.stash.findIndex((i) => i.id === item.id);
-      if (idx !== -1 && updated) state.stash[idx] = updated;
-      renderDeepseekPhysical();
-      toast(t("ds.cleared"));
     } catch (err) {
       toast(err.message, "error");
     }
@@ -597,10 +587,23 @@ async function onStashClick(event) {
   }
   const specs = target.closest("[data-ds-specs]");
   if (specs) {
-    state.dsPhysicalTarget = specs.dataset.dsSpecs;
-    renderDeepseekPhysical();
-    const card = $("#dsPhysicalCard");
-    if (card) card.scrollIntoView({ block: "center", behavior: "smooth" });
+    fetchItemSpecs(specs.dataset.dsSpecs);
+    return;
+  }
+
+  const clearSpecs = target.closest("[data-ds-specs-clear]");
+  if (clearSpecs) {
+    (async () => {
+      try {
+        const updated = await call(api.deepseekClearPhysical(clearSpecs.dataset.dsSpecsClear));
+        const at = state.stash.findIndex((i) => i.id === clearSpecs.dataset.dsSpecsClear);
+        if (at !== -1 && updated) state.stash[at] = updated;
+        renderStashLists();
+        toast(t("ds.cleared"));
+      } catch (err) {
+        toast(err.message, "error");
+      }
+    })();
     return;
   }
 
@@ -765,7 +768,7 @@ async function stashCandidate(baseKey, kind) {
     return;
   }
   try {
-    await call(
+    const created = await call(
       api.addStash({
         kind,
         source: "local",
@@ -782,6 +785,8 @@ async function stashCandidate(baseKey, kind) {
     );
     await refreshStash();
     toast(kind === "recycle" ? "Added to the recycle stash." : "Added to the replacement stash.");
+    // Recycling an item pulls its specs in automatically when DeepSeek is on.
+    autoFetchSpecs(created);
   } catch (err) {
     toast(err.message, "error");
   }
@@ -799,7 +804,7 @@ async function stashDiscovery(id, kind) {
     return;
   }
   try {
-    await call(
+    const created = await call(
       api.addStash({
         kind,
         source: device.source,
@@ -814,6 +819,7 @@ async function stashDiscovery(id, kind) {
     );
     await refreshStash();
     toast(kind === "recycle" ? "Added to the recycle stash." : "Added to the replacement stash.");
+    autoFetchSpecs(created);
   } catch (err) {
     toast(err.message, "error");
   }
@@ -912,7 +918,6 @@ function renderAll() {
   renderMarket();
   renderDeepseekMatch();
   renderDeepseekSettings();
-  renderDeepseekPhysical();
 }
 
 function renderSidebar() {
@@ -1072,6 +1077,43 @@ function renderRecycle() {
   renderDestruction();
 }
 
+/**
+ * The physical description carried by an item.
+ *
+ * Specs live on the item itself (`item.aiPhysical`), so there is no separate
+ * lookup panel to point at things. Both the DeepSeek figure and the
+ * deterministic local estimate are shown, so the model's number never hides
+ * where it came from.
+ */
+function specBlock(item) {
+  const spec = item.aiPhysical;
+  if (!spec) return "";
+  const perUnit = item.impact.kgDiverted / Math.max(1, item.quantity);
+  const rows = [
+    [t("ds.weight"), spec.weightKg != null ? `${weight(spec.weightKg)} kg` : "—", `${weight(perUnit)} kg`],
+    [t("ds.dimensions"), spec.dimensions ?? "—", "—"],
+  ];
+  return `
+    <div class="spec-block">
+      <div class="spec-head">
+        <span class="badge blue">${t("ds.unverified")}</span>
+        ${estimateBadge(spec.confidence)}
+        <span class="muted small">${esc(spec.basis)}</span>
+      </div>
+      <table class="ds-spec-table">
+        <thead><tr><th></th><th>${t("ds.deepseek")}</th><th>${t("ds.local")}</th></tr></thead>
+        <tbody>${rows
+          .map(([k, a, b]) => `<tr><td class="muted small">${esc(k)}</td><td>${esc(a)}</td><td class="muted">${esc(b)}</td></tr>`)
+          .join("")}</tbody>
+      </table>
+      ${materialsChips(spec.materials)}
+      <div class="muted small">${t("ds.fetched", {
+        date: new Date(spec.fetchedAt ?? Date.now()).toLocaleDateString(),
+        model: spec.model ?? "",
+      })}</div>
+    </div>`;
+}
+
 function stashItemCard(item) {
   const photo = state.itemPhotos.get(item.id);
   const bits = [item.category, `qty ${item.quantity}`];
@@ -1080,6 +1122,7 @@ function stashItemCard(item) {
   const replaced = item.replacedWith
     ? `<div class="stash-replaced">Replaced with <a href="${esc(item.replacedWith.url)}" target="_blank" rel="noreferrer">${esc(item.replacedWith.title)}</a> · ${money(item.replacedWith.priceJod)} JOD</div>`
     : "";
+  const canSpec = item.kind === "recycle";
   return `
     <article class="stash-item ${esc(item.status)}">
       <div class="stash-thumb">${photo ? `<img src="${photo}" alt="">` : `<span>${esc(item.category.slice(0, 2).toUpperCase())}</span>`}</div>
@@ -1101,14 +1144,22 @@ function stashItemCard(item) {
                 .join("")}</div></details>`
             : ""
         }
+        ${specBlock(item)}
         ${replaced}
         <textarea class="stash-notes" data-notes="${esc(item.id)}" rows="1" placeholder="Notes…">${esc(item.notes)}</textarea>
       </div>
       <div class="stash-actions">
         ${
           item.status === "stashed" && item.kind === "recycle"
-            ? `<button class="ghost mini" data-attach="${esc(item.id)}">${photo ? "Change photo" : "Attach photo"}</button>
-               <button class="ghost mini" data-ds-specs="${esc(item.id)}">${t("ds.lookupShort")}</button>`
+            ? `<button class="ghost mini" data-attach="${esc(item.id)}">${photo ? "Change photo" : "Attach photo"}</button>`
+            : ""
+        }
+        ${
+          canSpec && item.status === "stashed"
+            ? item.aiPhysical
+              ? `<button class="ghost mini" data-ds-specs="${esc(item.id)}" data-refresh="1">${t("ds.refreshSpecs")}</button>
+                 <button class="ghost mini" data-ds-specs-clear="${esc(item.id)}">${t("ds.clearSpecs")}</button>`
+              : `<button class="soft mini" data-ds-specs="${esc(item.id)}"><svg class="icon" aria-hidden="true"><use href="#i-scan" /></svg>${t("ds.addSpecs")}</button>`
             : ""
         }
         ${
@@ -1325,24 +1376,64 @@ function renderDeepseekMatch() {
   el.classList.remove("hidden");
 }
 
-/** Ask for the key inline, once, before the first DeepSeek call. */
+/**
+ * Ask for the key in an in-app modal.
+ *
+ * This used to call window.prompt(), which Electron does not implement — it
+ * throws "prompt() is not supported", so the call was silently swallowed and
+ * the buttons appeared dead. A promise-backed modal replaces it.
+ */
+let dsKeyResolver = null;
+
 function askForDeepseekKey() {
-  const key = window.prompt(t("ds.keyPrompt"));
-  return key && key.trim() ? key.trim() : null;
+  return new Promise((resolve) => {
+    dsKeyResolver = resolve;
+    const modal = $("#dsKeyModal");
+    const input = $("#dsKeyModalInput");
+    const err = $("#dsKeyModalError");
+    if (err) err.classList.add("hidden");
+    if (input) input.value = "";
+    modal.classList.remove("hidden");
+    if (input) input.focus();
+  });
+}
+
+function closeDsKeyModal(value) {
+  $("#dsKeyModal").classList.add("hidden");
+  const resolve = dsKeyResolver;
+  dsKeyResolver = null;
+  if (resolve) resolve(value);
+}
+
+/** Store a key, returning true on success. Shows the error inside the modal. */
+async function saveDeepseekKey(raw) {
+  try {
+    state.dsStatus = await call(api.deepseekSetKey(raw.trim()));
+    renderDeepseekSettings();
+    return true;
+  } catch (err) {
+    const box = $("#dsKeyModalError");
+    if (box) {
+      box.textContent = err.message;
+      box.classList.remove("hidden");
+    }
+    return false;
+  }
+}
+
+/** Ensure a key exists, prompting through the modal when needed. */
+async function ensureDeepseekKey() {
+  if (state.dsStatus?.configured) return true;
+  const key = await askForDeepseekKey();
+  return Boolean(key);
 }
 
 async function runDeepseekMatch(mode) {
-  if (!state.replaceItem) return;
-  if (!state.dsStatus?.configured) {
-    const key = askForDeepseekKey();
-    if (!key) return;
-    try {
-      state.dsStatus = await call(api.deepseekSetKey(key));
-    } catch (err) {
-      toast(err.message, "error");
-      return;
-    }
+  if (!state.replaceItem) {
+    toast(t("ds.pickReplaceItem"), "error");
+    return;
   }
+  if (!(await ensureDeepseekKey())) return;
 
   const btn = document.querySelector(`[data-ds-target="${mode}"]`);
   const label = btn?.textContent;
@@ -1396,97 +1487,52 @@ function renderRecycleEstimate() {
   el.innerHTML = renderEstimateHtml(state.recycleEstimate);
 }
 
-/** Which stashed item the DeepSeek spec lookup is pointed at. */
-function dsPhysicalTargetItem() {
-  const id = state.dsPhysicalTarget;
-  return id ? state.stash.find((i) => i.id === id) ?? null : null;
-}
+/**
+ * Pull specs for one item and attach them to it. Called by the "Add specs"
+ * button and automatically right after a recycle item is added.
+ */
+async function fetchItemSpecs(itemId, { silent = false } = {}) {
+  const idx = state.stash.findIndex((i) => i.id === itemId);
+  if (idx === -1) return;
 
-function renderDeepseekPhysical() {
-  const target = $("#dsPhysicalTarget");
-  const result = $("#dsPhysicalResult");
-  const stateEl = $("#dsPhysicalState");
-  if (!target || !result) return;
+  if (!(await ensureDeepseekKey())) return;
 
-  const item = dsPhysicalTargetItem();
-  target.innerHTML = item
-    ? `<div class="k muted small">${t("ds.target")}</div>
-       <strong dir="auto">${esc(item.title)}</strong>
-       <div class="muted small">${esc([item.category, `qty ${item.quantity}`].join(" · "))}</div>`
-    : `<p class="muted small">${t("ds.pickItem")}</p>`;
-
-  if (stateEl) {
-    stateEl.textContent = state.dsStatus?.configured ? "" : t("ds.needsKey");
+  const row = document.querySelector(`[data-ds-specs="${itemId}"]`);
+  const label = row?.textContent;
+  if (row) {
+    row.disabled = true;
+    row.textContent = t("ds.looking");
   }
 
-  const spec = item?.aiPhysical;
-  if (!spec) {
-    result.innerHTML = "";
-    return;
-  }
-
-  const local = item.impact;
-  const rows = [
-    ["Weight", spec.weightKg != null ? `${weight(spec.weightKg)} kg` : "—", `${weight(local.kgDiverted / Math.max(1, item.quantity))} kg`],
-    ["Dimensions", spec.dimensions ?? "—", "—"],
-  ];
-
-  result.innerHTML = `
-    <div class="ds-spec">
-      <div class="estimate-head">
-        <span class="badge blue">DeepSeek estimate — unverified</span>
-        ${estimateBadge(spec.confidence)}
-        <span class="muted small">${esc(spec.basis)}</span>
-      </div>
-      <table class="ds-spec-table">
-        <thead><tr><th></th><th>${t("ds.deepseek")}</th><th>${t("ds.local")}</th></tr></thead>
-        <tbody>
-          ${rows.map(([k, a, b]) => `<tr><td class="muted small">${esc(k)}</td><td>${esc(a)}</td><td class="muted">${esc(b)}</td></tr>`).join("")}
-        </tbody>
-      </table>
-      ${materialsChips(spec.materials)}
-      <div class="muted small">${t("ds.fetched", { date: new Date(spec.fetchedAt ?? Date.now()).toLocaleDateString(), model: spec.model ?? "" })}</div>
-    </div>`;
-}
-
-async function runDeepseekPhysical() {
-  const item = dsPhysicalTargetItem();
-  if (!item) {
-    toast(t("ds.pickItem"), "error");
-    return;
-  }
-  if (!state.dsStatus?.configured) {
-    const key = askForDeepseekKey();
-    if (!key) return;
-    try {
-      state.dsStatus = await call(api.deepseekSetKey(key));
-      renderDeepseekPhysical();
-    } catch (err) {
-      toast(err.message, "error");
-      return;
-    }
-  }
-
-  const btn = $("#dsPhysicalRun");
-  const label = btn?.textContent;
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = t("ds.looking");
-  }
   try {
-    const res = await call(api.deepseekPhysical(item.id, window.I18N.lang));
-    const idx = state.stash.findIndex((i) => i.id === item.id);
-    if (idx !== -1) state.stash[idx] = res.item;
-    renderDeepseekPhysical();
-    toast(t("ds.specsDone"));
+    const res = await call(api.deepseekPhysical(itemId, window.I18N.lang));
+    const at = state.stash.findIndex((i) => i.id === itemId);
+    if (at !== -1) state.stash[at] = res.item;
+    // Specs are part of the item now, so they are what the manifest prints —
+    // the deterministic figure stays visible beside them in the row.
+    const applied = await call(api.deepseekApplyPhysical(itemId));
+    if (at !== -1 && applied) state.stash[at] = applied;
+    state.ledger = await call(api.ledger());
+    renderStashLists();
+    renderLedger();
+    renderRecycleSummary();
+    if (!silent) toast(t("ds.specsDone"));
   } catch (err) {
-    toast(err.message, "error");
+    if (!silent) toast(err.message, "error");
+    else toast(`${t("ds.specsFailed")} ${err.message}`, "error");
   } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = label;
+    if (row) {
+      row.disabled = false;
+      row.textContent = label;
     }
   }
+}
+
+/** Fetch specs for a freshly added recycle item, without blocking the add. */
+async function autoFetchSpecs(item) {
+  if (!item || item.kind !== "recycle") return;
+  if (!state.dsStatus?.configured) return;
+  await fetchItemSpecs(item.id, { silent: true });
 }
 
 function renderDeepseekSettings() {

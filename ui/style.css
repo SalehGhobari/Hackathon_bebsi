@@ -766,6 +766,19 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 }
 .ds-price small { font-size: var(--fs-micro); color: var(--muted); font-weight: 500; }
 
+.spec-block {
+  margin-top: var(--s-2); padding: var(--s-2) 10px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  background: var(--surface-1);
+}
+.spec-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.spec-block .ds-spec-table { margin: var(--s-2) 0; }
+.spec-block .chips { margin-bottom: var(--s-1); }
+.ds-key-card { width: min(560px, 94vw); padding: var(--s-5); }
+.ds-key-card h2 { margin-bottom: 6px; font-size: 19px; font-weight: 650; letter-spacing: -.2px; }
+.ds-key-card p { margin-bottom: var(--s-2); }
+#dsKeyModalError { margin-top: var(--s-2); }
+
 .ds-target {
   margin: var(--s-3) 0; padding: var(--s-2) 10px;
   border: 1px dashed var(--line-strong); border-radius: var(--radius-sm);

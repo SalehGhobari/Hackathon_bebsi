@@ -25,7 +25,11 @@ import type {
  * `connect-src 'none'` policy and never sees the API key.
  */
 
-const ENDPOINT = "https://api.deepseek.com/chat/completions";
+/**
+ * Overridable so the integration can be pointed at a local mock or a corporate
+ * proxy. The default is the real DeepSeek endpoint.
+ */
+const ENDPOINT = process.env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com/chat/completions";
 export const DEFAULT_MODEL = "deepseek-chat";
 
 /** Ceiling on how many candidates we will describe to the model. */
