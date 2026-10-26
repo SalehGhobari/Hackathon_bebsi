@@ -36,6 +36,20 @@ const CASES: [string, string][] = [
   ["شاشة لابتوب 15.6 بوصة FHD", "other"],
   ["وصلات كمبيوتر وشاشات جديدة للبيع", "other"],
   ["كل شاحن سعر شاحن لاب توب عده نوعيات بحال الوكاله تايب سي", "charger"],
+
+  // Real titles from a live OpenSooq search. These exposed a gap: the machine
+  // was only recognised when the title contained the word "laptop", so a
+  // model-name-only spec sheet fell through to whichever component word it
+  // happened to mention.
+  ["LEONOVO V15 G5 15.6FHD+INTER I7-13620H+16GB DDR4+512GB SSD+INTEGRATED GPU+3 CELL BATTERY", "laptop"],
+  ["Apple iMac 21.5 2013 core i5 16 GB RAM 512 SSD", "desktop"],
+  ["Lenovo IdeaPad 5 2-in-1 Ryzen 7 8845HS 16GB RAM 1TB SSD 16” Touch Radeon 780M Windows 11", "laptop"],
+  ["4 جيجا رام ram ddr4 لابتوب بحالة الوكالة للبيع بسعر مغري", "ram"],
+  ["مطلوب 16GB DDR4-2400 Laptop SO-DIMM, 260-pin, 1.2V, Non-ECC, Unbuffered", "ram"],
+  // must not regress: a drive that mentions two storage kinds is still a drive
+  ["هاردسك SSD SATA 2.5 بوصة واستمتع بإقلاع أسرع", "ssd"],
+  // a GPU listing that names the host CPU and RAM is still a GPU
+  ["Intel Core i5 14th Gen + NVIDIA GeForce RTX 5060TI 8GB GIGABYTE EAGLE+ 16GB RAM DDR4", "gpu"],
 ];
 
 let failures = 0;

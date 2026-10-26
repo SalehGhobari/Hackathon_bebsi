@@ -2,6 +2,12 @@
 (function () {
   const DICT = {
     en: {
+      "market.queryPlaceholder": "Search OpenSooq live — e.g. Kingston NV3 500GB NVMe",
+      "market.queryGo": "Search OpenSooq",
+      "market.querying": "Searching OpenSooq…",
+      "market.queryDone": "{n} live listing(s) for “{term}”, captured just now.",
+      "market.queryNone": "OpenSooq returned nothing for “{term}”. Showing the stored snapshot instead.",
+      "market.liveBadge": "live",
       "ds.addSpecs": "Add specs",
       "ds.refreshSpecs": "Refresh specs",
       "ds.unverified": "DeepSeek estimate — unverified",
@@ -367,6 +373,12 @@
     },
 
     ar: {
+      "market.queryPlaceholder": "ابحث في OpenSooq مباشرة — مثال: Kingston NV3 500GB NVMe",
+      "market.queryGo": "ابحث في OpenSooq",
+      "market.querying": "جارٍ البحث في OpenSooq…",
+      "market.queryDone": "{n} إعلان مباشر عن «{term}»، جُلب الآن.",
+      "market.queryNone": "لم يُعد OpenSooq نتائج عن «{term}». تُعرض اللقطة المخزّنة بدلاً منها.",
+      "market.liveBadge": "مباشر",
       "ds.addSpecs": "أضف المواصفات",
       "ds.refreshSpecs": "حدّث المواصفات",
       "ds.unverified": "تقدير DeepSeek — غير مُتحقّق منه",

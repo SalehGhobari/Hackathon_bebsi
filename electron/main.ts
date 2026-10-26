@@ -9,6 +9,7 @@ import { compactForQr, verifyPassport } from "../lib/passport";
 import { renderPassportHtml } from "./passport-pdf";
 import { aiSearch, aiStatus } from "../lib/ai";
 import { Deepseek, DeepseekError, DEFAULT_MODEL } from "../lib/deepseek";
+import { priceRowsWithLinks } from "../lib/retail";
 import { scanConnected } from "../lib/detect/connected";
 import { scanLan } from "../lib/detect/lan";
 import { renderRecycleHtml } from "./recycle-pdf";
@@ -130,6 +131,14 @@ function registerIpc() {
   handle("market:get", (payload) =>
     store.market((payload as { deviceId?: string; stashId?: string } | undefined) ?? {}),
   );
+  handle("market:search", (payload) => {
+    const { term, target } = payload as {
+      term: string;
+      target?: string | { deviceId?: string; stashId?: string };
+    };
+    return store.searchMarket(term, target);
+  });
+
   handle("market:refresh", (payload) =>
     store.refreshMarket((payload as { deviceId?: string; stashId?: string } | undefined) ?? {}),
   );
@@ -315,7 +324,9 @@ function registerIpc() {
         "retail",
         lang === "ar" ? "ar" : "en",
       );
-      return { mode, result, rows };
+      // Every retail match carries the vendor page and a live search link,
+      // because the price itself cannot be read from those sites server-side.
+      return { mode, result, rows: priceRowsWithLinks(rows) };
     }
 
     const market = store.market({ stashId });

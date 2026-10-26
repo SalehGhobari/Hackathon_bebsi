@@ -9,7 +9,7 @@ import { checkCompatibility } from "./compat";
 import { flagOutliers, parseListing } from "./parse";
 
 export { requirementsFrom } from "./compat";
-export { fetchMarketListings, MARKET_SOURCES } from "./fetch";
+export { fetchMarketListings, fetchMarketQuery, marketQueryUrl, MARKET_SOURCES } from "./fetch";
 
 export function buildMarket(
   raw: RawListing[],

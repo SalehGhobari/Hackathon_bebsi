@@ -99,6 +99,48 @@ function parsePage(html: string, page: string, sourceUrl: string, capturedAt: st
   return out;
 }
 
+/** Build the public search URL for a free-text query. */
+export function marketQueryUrl(term: string): string {
+  return `https://jo.opensooq.com/en/find?PostSearch%5Bterm%5D=${encodeURIComponent(term.trim())}`;
+}
+
+/**
+ * Live search for one term.
+ *
+ * This is the on-demand path: the bundled snapshot is frozen at whatever was
+ * captured, so a specific part is often missing from it. A single request per
+ * query keeps it polite, and callers fall back to the snapshot when this
+ * returns nothing (offline, blocked, or a term with no hits).
+ */
+export async function fetchMarketQuery(
+  term: string,
+): Promise<{ listings: RawListing[]; sources: string[]; url: string }> {
+  const url = marketQueryUrl(term);
+  const capturedAt = new Date().toISOString().slice(0, 10);
+  const listings: RawListing[] = [];
+
+  try {
+    const res = await fetch(url, {
+      headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml" },
+      signal: AbortSignal.timeout(15_000),
+      redirect: "follow",
+    });
+    if (res.ok) {
+      const html = await res.text();
+      const seen = new Set<string>();
+      for (const listing of parsePage(html, `Search: ${term}`, url, capturedAt)) {
+        if (seen.has(listing.id)) continue;
+        seen.add(listing.id);
+        listings.push(listing);
+      }
+    }
+  } catch {
+    // Offline or blocked: the caller keeps the snapshot.
+  }
+
+  return { listings, sources: [url], url };
+}
+
 export async function fetchMarketListings(): Promise<{ listings: RawListing[]; sources: string[] }> {
   const capturedAt = new Date().toISOString().slice(0, 10);
   const seen = new Set<string>();

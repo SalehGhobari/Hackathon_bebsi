@@ -4,8 +4,14 @@ function esc(value: unknown): string {
   return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c as "&"]);
 }
 
+/**
+ * Mass with sensible precision. Whole devices are fine to one decimal, but
+ * small parts (an SSD is ~0.07 kg) need two, otherwise a per-unit figure
+ * rounds to something that no longer multiplies back to the total.
+ */
 function kg(n: number): string {
-  return Number(n).toLocaleString("en-US", { maximumFractionDigits: 1 });
+  const value = Number(n);
+  return value.toLocaleString("en-US", { maximumFractionDigits: Math.abs(value) < 1 ? 2 : 1 });
 }
 
 /**
@@ -31,19 +37,38 @@ export function renderRecycleHtml(batch: RecycleBatch, lang: "en" | "ar"): strin
       const photo = item.photoDataUrl
         ? `<img src="${item.photoDataUrl}" alt="">`
         : `<div class="no-photo">${t("No photo", "لا توجد صورة")}</div>`;
+      // Per-item physical description: unit weight, dimensions and recoverable
+      // materials. Dimensions only exist when DeepSeek supplied them, so the
+      // row degrades to whatever is actually known rather than printing a dash.
+      const spec = item.aiPhysical;
+      const unitKg = item.impact.kgDiverted / Math.max(1, item.quantity);
+      const mats = (spec?.materials?.length ? spec.materials : item.impact.materials)
+        .filter((m) => m.grams > 0)
+        .map((m) => `${esc(m.name)} ${kg(m.grams)} g`)
+        .join(" · ");
+
+      const specLine = [
+        `<strong>${t("Weight", "الوزن")}:</strong> ${kg(item.impact.kgDiverted)} kg${
+          item.quantity > 1 ? ` (${kg(unitKg)} kg × ${item.quantity})` : ""
+        }`,
+        spec?.dimensions ? `<strong>${t("Dimensions", "الأبعاد")}:</strong> ${esc(spec.dimensions)}` : "",
+      ]
+        .filter(Boolean)
+        .join(" &nbsp;·&nbsp; ");
+
       return `<tr>
         <td class="n">${index + 1}</td>
         <td class="pic">${photo}</td>
         <td>
           <strong>${esc(item.title)}</strong>
           <div class="detail">${esc(item.detail || item.category)}</div>
+          <div class="specs">${specLine}</div>
+          ${mats ? `<div class="mats"><strong>${t("Materials", "المواد")}:</strong> ${mats}</div>` : ""}
           ${item.notes ? `<div class="notes">${esc(item.notes)}</div>` : ""}
           <div class="meta">${esc(item.category)} · ${t("source", "المصدر")}: ${esc(item.source)} · ${t("qty", "الكمية")}: ${item.quantity} · ${t("added", "أُضيف")}: ${new Date(item.createdAt).toLocaleDateString()}</div>
         </td>
         <td class="mass">${kg(item.impact.kgDiverted)} kg${
-          item.aiPhysical
-            ? `<div class="prov">${t("DeepSeek estimate", "تقدير DeepSeek")}</div>`
-            : ""
+          spec ? `<div class="prov">${t("DeepSeek estimate", "تقدير DeepSeek")}</div>` : ""
         }</td>
       </tr>`;
     })
@@ -83,6 +108,8 @@ export function renderRecycleHtml(batch: RecycleBatch, lang: "en" | "ar"): strin
   .no-photo { display: flex; align-items: center; justify-content: center; color: #8a99a3; font-size: 7pt; text-align: center; }
   td.mass { width: 17mm; text-align: end; font-weight: 700; font-size: 8.5pt; }
   .detail { color: #44545e; font-size: 8.5pt; margin-top: 1px; }
+  .specs { font-size: 8pt; color: #3d4a53; margin-top: 3px; }
+  .mats { font-size: 7.5pt; color: #5b6b76; margin-top: 2px; }
   .notes { color: #5b6b76; font-size: 8pt; font-style: italic; margin-top: 2px; }
   .meta { color: #8a99a3; font-size: 7pt; margin-top: 2px; }
   .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }

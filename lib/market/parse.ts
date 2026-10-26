@@ -41,6 +41,21 @@ const ARABIC_BRANDS: Record<string, string> = {
 const PART_PREFIX =
   /^(رام|رامات|ذاكره|شاحن|شواحن|محول|ادابتر|بطاري|هارد|هاردسك|ssd|nvme|مروح|مبرد|معجون|شاشه|كيبورد|ماوس|لوحه|مذربورد|معالج|بروسيسور|كابل|كابلات|وصلات|اسلاك|كل شاحن|كفر|شنطه|حقيبه)/;
 
+/**
+ * Model families that name the device itself. A listing for an "IdeaPad" or an
+ * "iMac" is the machine, even when the title is a spec sheet that names RAM,
+ * an SSD and a battery along the way.
+ */
+const MACHINE_MODELS =
+  /\b(ideapad|thinkpad|thinkbook|thinkcentre|thinkstation|legion|loq|vostro|inspiron|latitude|xps|pavilion|probook|elitebook|envy|omen|victus|spectre|zbook|vivobook|zenbook|proart|aspire|nitro|predator|swift|travelmate|katana|stealth|prestige|macbook|imac|mac\s?mini|mac\s?pro|mac\s?studio|surface|galaxy\s?book|optiplex|prodesk|elitedesk|ideacentre)\b/i;
+
+const MAC_DESKTOP = /imac|mac\s?mini|mac\s?pro|mac\s?studio/i;
+
+/** Categories that describe a component rather than a whole machine. */
+const COMPONENT_CATEGORIES: MarketCategory[] = [
+  "battery", "charger", "cooling", "gpu", "cpu", "motherboard", "ram", "ssd", "hdd", "keyboard",
+];
+
 function classify(text: string): MarketCategory {
   // Readers, docks and hubs mention "SSD/NVMe" but are not drives.
   if (/reader|قارئ|dock|قاعده|hub\b/.test(text) && !/شاحن|laptop/.test(text)) return "other";
@@ -62,10 +77,35 @@ function classify(text: string): MarketCategory {
   const laptopish = /لابتوب|لاب توب|laptop|نوت بوك|notebook|macbook/.test(text);
   const desktopish = /كمبيوتر|كومبيوتر|بي سي|\bpc\b|مكتبي|ديسكتوب|mini pc|all in one|اوبتكليكس|optiplex/.test(text);
 
-  // A whole machine mentions DDR5/RTX/SSD as specifications. If it leads with
-  // "laptop"/"computer" it is a device, not the component named inside it.
-  if (!isPart && laptopish) return "laptop";
-  if (!isPart && desktopish) return "desktop";
+  // A whole machine mentions DDR5/RTX/SSD as specifications. Deciding between
+  // "device" and "the component it mentions" needs the component count, so it
+  // is resolved here rather than by the plain laptop/desktop word check.
+  if (!isPart) {
+    const components = COMPONENT_CATEGORIES.filter((category) =>
+      RULES.find((r) => r.category === category)?.patterns.some((p) => p.test(text)),
+    );
+
+    // A named model family settles it without needing the word "laptop".
+    if (MACHINE_MODELS.test(text)) {
+      if (MAC_DESKTOP.test(text)) return "desktop";
+      return desktopish && !laptopish ? "desktop" : "laptop";
+    }
+
+    // A spec sheet listing a battery alongside other components is a machine.
+    // Component listings do not enumerate a battery with an SSD and RAM.
+    if (components.length >= 3 && /بطار|\bbattery\b/i.test(text)) return "laptop";
+
+    if (laptopish || desktopish) {
+      // Several components named at once means the device, not one of them.
+      if (components.length >= 2) return desktopish ? "desktop" : "laptop";
+      // Exactly one component beside a machine word is that component:
+      // "4 جيجا رام ddr4 لابتوب" is a RAM stick, not a laptop.
+      if (components.length === 1) return components[0];
+    }
+
+    if (laptopish) return "laptop";
+    if (desktopish) return "desktop";
+  }
 
   for (const rule of RULES) {
     // A part-looking title must not fall through to "laptop/desktop" just

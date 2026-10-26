@@ -96,8 +96,10 @@ and the renderer keeps `connect-src 'none'`.
 Two things it does:
 
 - **Matching.** In the Replace tab, *Match on OpenSooq* or *Match in retail* ranks a stashed item against the local
-  listings or the price book.
-- **Specs.** Every recycle item carries its own physical description. Add one with **Add specs**, or let it fill in
+  listings or the price book. Retail matches also carry the vendor's product page and a live search link, so a dated
+  price is one click from being checked.
+- **Specs.** Every recycle item carries its own physical description — weight, dimensions and recoverable materials —
+  and it appears in the recycling manifest PDF alongside the item. Add one with **Add specs**, or let it fill in
   automatically: with a key stored, stashing something for recycling pulls its specs in on its own.
 
 The integration is built so the model cannot invent a fact:
@@ -113,6 +115,17 @@ The integration is built so the model cannot invent a fact:
   dropped before it is stored.
 
 `DEEPSEEK_BASE_URL` overrides the endpoint if you need to route through a proxy.
+
+### Live OpenSooq search
+
+The bundled index is a frozen capture, so a specific part is often missing from it. The Replace tab has a search box
+that queries OpenSooq for the term you actually typed, parses the results with the same pipeline as the snapshot, and
+folds them into the local index. If the fetch returns nothing — offline, blocked, or a term with no hits — the stored
+snapshot stays and the note says so.
+
+Jordanian retailers render their price grids client-side, so their pages cannot be read server-side (verified against
+GTS and Jumia). Retail therefore stays a dated, sourced price book, and every match links out to the vendor page and a
+live search instead of pretending to know today's price.
 
 The API key is stored through Electron's `safeStorage`. On a Linux box with no keyring that falls back to plaintext
 storage, and the Info tab says so rather than implying the key is encrypted.

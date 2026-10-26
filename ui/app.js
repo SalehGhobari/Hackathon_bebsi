@@ -28,6 +28,7 @@ const state = {
   editEstimate: null,
   dsStatus: null,
   dsMatch: null,
+  liveQuery: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -299,7 +300,10 @@ function bind() {
       state.aiEngine = null;
       state.market = null;
       state.marketKey = null;
+      state.liveQuery = null;
       $("#mSearch").value = "";
+      $("#mQuery").value = "";
+      $("#mQueryNote").textContent = "";
       renderReplaceTarget();
       loadMarket(true);
       return;
@@ -443,6 +447,14 @@ function bind() {
     const el = document.getElementById(id);
     if (el) el.addEventListener("input", renderMarket);
   }
+
+  $("#mQueryGo").addEventListener("click", runLiveQuery);
+  $("#mQuery").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      runLiveQuery();
+    }
+  });
 
   $("#mRefresh").addEventListener("click", async () => {
     const btn = $("#mRefresh");
@@ -852,6 +864,47 @@ async function findParts(id) {
   switchTab("replace");
   renderReplaceTarget();
   setTimeout(() => $("#replaceTarget").scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+}
+
+/**
+ * Live OpenSooq search for the term the user typed.
+ *
+ * The bundled snapshot is a frozen capture, so a specific part is often absent.
+ * This queries OpenSooq for the term itself; on failure the snapshot stays and
+ * the note says so rather than showing an empty list.
+ */
+async function runLiveQuery() {
+  const input = $("#mQuery");
+  const btn = $("#mQueryGo");
+  const note = $("#mQueryNote");
+  const term = input.value.trim();
+  if (!term) {
+    input.focus();
+    return;
+  }
+
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = t("market.querying");
+  if (note) note.textContent = "";
+  try {
+    const res = await call(api.searchMarket(term, marketTarget()));
+    state.market = res.market;
+    state.marketKey = marketKey();
+    state.liveQuery = { term, live: res.live, url: res.url, keptSnapshot: res.keptSnapshot };
+    renderMarket();
+    if (note) {
+      note.textContent = res.keptSnapshot
+        ? t("market.queryNone", { term })
+        : t("market.queryDone", { n: res.live, term });
+      note.className = res.keptSnapshot ? "small ds-warn" : "muted small";
+    }
+  } catch (err) {
+    toast(err.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
 }
 
 async function useListing(listingId) {
@@ -1351,16 +1404,33 @@ function renderDeepseekMatch() {
           const title = mode === "retail" ? row.item : row.title;
           const price = mode === "retail" ? row.low : row.priceJod;
           const spec = mode === "retail" ? row.spec : row.category;
+          const prov =
+            mode === "retail"
+              ? `<div class="muted small">${esc(row.vendor ?? "")} · ${esc(row.sourceDate ?? "")}${
+                  row.kind ? ` · ${esc(row.kind)}` : ""
+                }</div>`
+              : "";
           return `
             <div class="ds-match">
               <div class="ds-match-main">
                 <div class="ds-match-title" dir="auto">${esc(title)}</div>
                 ${spec ? `<div class="muted small">${esc(spec)}</div>` : ""}
+                ${prov}
                 ${m.reason ? `<div class="ds-reason">${esc(m.reason)}</div>` : ""}
               </div>
               <div class="ds-match-side">
                 ${m.best ? `<span class="badge mint">best fit</span>` : ""}
                 <div class="ds-price">${money(price)} <small>JOD</small></div>
+                ${
+                  mode === "retail" && row.links?.length
+                    ? `<div class="retail-links">${row.links
+                        .map(
+                          (l) =>
+                            `<a href="${esc(l.url)}" target="_blank" rel="noreferrer">${esc(l.label)}<svg class="icon" aria-hidden="true"><use href="#i-external" /></svg></a>`,
+                        )
+                        .join("")}</div>`
+                    : ""
+                }
                 ${
                   mode === "opensooq"
                     ? `<button class="soft mini" data-use-listing="${esc(row.id)}">Use this part</button>`

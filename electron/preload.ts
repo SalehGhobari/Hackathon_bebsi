@@ -16,6 +16,8 @@ const api = {
     invoke("market:get", typeof target === "string" ? { deviceId: target } : target ?? {}),
   refreshMarket: (target?: string | { deviceId?: string; stashId?: string }) =>
     invoke("market:refresh", typeof target === "string" ? { deviceId: target } : target ?? {}),
+  searchMarket: (term: string, target?: string | { deviceId?: string; stashId?: string }) =>
+    invoke("market:search", { term, target }),
   listingImage: (listingId: string) => invoke("market:image", { listingId }),
   aiStatus: () => invoke("ai:status"),
   aiSearch: (query: string, lang?: string) => invoke("ai:search", { query, lang }),

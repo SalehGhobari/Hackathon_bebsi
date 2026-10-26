@@ -9,7 +9,7 @@ import { assess } from "./health";
 import { advise, type Advice } from "./advisor";
 import { buildPassport } from "./passport";
 import { DEVICE_MATERIALS, DEVICE_MASS_KG, avoidedManufacturingCo2e, mergeMaterials, scaleMaterials } from "./green";
-import { buildMarket, fetchMarketListings, requirementsFrom } from "./market";
+import { buildMarket, fetchMarketListings, fetchMarketQuery, requirementsFrom } from "./market";
 import { estimateRecycleByName } from "./recycle/estimate";
 import { fetchListingImage, type ListingImage } from "./market/images";
 import type {
@@ -211,6 +211,49 @@ export class Store {
       this.saveMarket();
     }
     return { added, fetched: listings.length, market: this.market(target) };
+  }
+
+  /**
+   * Live search for one term.
+   *
+   * The bundled snapshot is a frozen capture, so a specific part is often
+   * absent from it. This queries OpenSooq for the term the user actually typed,
+   * merges what comes back into the local index, and returns a market built
+   * from the fresh hits. When the fetch yields nothing — offline, blocked, or a
+   * term with no results — the caller keeps the snapshot instead of an empty
+   * screen, and `live` reports which happened.
+   */
+  async searchMarket(
+    term: string,
+    target?: string | { deviceId?: string; stashId?: string },
+  ): Promise<{ market: MarketResponse; live: number; url: string; keptSnapshot: boolean }> {
+    const trimmed = term.trim().slice(0, 120);
+    if (!trimmed) throw new Error("Type something to search for.");
+
+    const { listings, sources, url } = await fetchMarketQuery(trimmed);
+
+    if (listings.length > 0) {
+      const known = new Map(this.marketData.listings.map((l) => [l.id, l]));
+      for (const listing of listings) known.set(listing.id, listing);
+      this.marketData = {
+        updatedAt: new Date().toISOString().slice(0, 10),
+        sources: [...new Set([...sources, ...this.marketData.sources])].slice(0, 60),
+        listings: [...known.values()].slice(-1200),
+      };
+      this.saveMarket();
+    }
+
+    const requirements = this.requirementsFor(target);
+    const market = listings.length
+      ? buildMarket(listings, new Date().toISOString().slice(0, 10), sources, requirements)
+      : this.market(target);
+
+    return {
+      market,
+      live: listings.length,
+      url,
+      keptSnapshot: listings.length === 0,
+    };
   }
 
   private load(): Data {

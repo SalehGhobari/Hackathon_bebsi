@@ -803,6 +803,21 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .ds-spec-table tr:last-child td { border-bottom: none; }
 [dir="rtl"] .ds-spec-table th, [dir="rtl"] .ds-spec-table td { text-align: right; }
 
+/* ---------- live OpenSooq query + retail links ---------- */
+.market-live { display: flex; gap: var(--s-2); margin-top: var(--s-3); }
+.market-live #mQuery { flex: 1 1 auto; min-width: 0; }
+.market-live .soft { flex: 0 0 auto; }
+#mQueryNote { margin: 6px 0 0; }
+
+.retail-links { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+.retail-links a {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--mint); font-size: var(--fs-micro); text-decoration: none;
+}
+.retail-links a:hover { text-decoration: underline; }
+.retail-links .icon { width: 11px; height: 11px; }
+[dir="rtl"] .retail-links { align-items: flex-start; }
+
 /* ---------- scrollbars ---------- */
 * { scrollbar-width: thin; scrollbar-color: #4a3d34 transparent; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
