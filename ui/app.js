@@ -18,9 +18,8 @@ const state = {
   marketKey: null,
   photos: new Map(),
   itemPhotos: new Map(),
-  aiFilters: null,
-  aiEngine: null,
-  aiStatus: null,
+  specFilters: null,
+  parseSummary: null,
   replaceItem: null,
   editingId: null,
   editOriginalTitle: null,
@@ -145,11 +144,6 @@ async function boot() {
 
     state.prices = await call(api.prices());
     state.recyclers = await call(api.recyclers());
-    try {
-      state.aiStatus = await call(api.aiStatus());
-    } catch {
-      state.aiStatus = null;
-    }
     try {
       state.dsStatus = await call(api.deepseekStatus());
     } catch {
@@ -296,8 +290,8 @@ function bind() {
   $("#replaceTarget").addEventListener("click", (event) => {
     if (event.target.closest("[data-clear-target]")) {
       state.replaceItem = null;
-      state.aiFilters = null;
-      state.aiEngine = null;
+      state.specFilters = null;
+      state.parseSummary = null;
       state.market = null;
       state.marketKey = null;
       state.liveQuery = null;
@@ -307,9 +301,6 @@ function bind() {
       renderReplaceTarget();
       loadMarket(true);
       return;
-    }
-    if (event.target.closest("[data-ai-target]")) {
-      runAiSearch(true);
     }
     const dsTarget = event.target.closest("[data-ds-target]");
     if (dsTarget) runDeepseekMatch(dsTarget.dataset.dsTarget);
@@ -408,17 +399,17 @@ function bind() {
   $("#generateRecyclePdf").addEventListener("click", generateRecyclePdf);
   $("#emailRecycler").addEventListener("click", emailRecycler);
 
-  $("#aiAsk").addEventListener("click", () => runAiSearch());
+  $("#mParseBtn").addEventListener("click", () => runSmartSearch());
   $("#mSearch").addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      runAiSearch();
+      runSmartSearch();
     }
   });
-  $("#aiChips").addEventListener("click", (event) => {
-    if (!event.target.closest("[data-ai-clear]")) return;
-    state.aiFilters = null;
-    state.aiEngine = null;
+  $("#mFilterChips").addEventListener("click", (event) => {
+    if (!event.target.closest("[data-filters-clear]")) return;
+    state.specFilters = null;
+    state.parseSummary = null;
     $("#mSearch").value = "";
     $("#mCategory").value = "all";
     $("#mCondition").value = "all";
@@ -854,8 +845,8 @@ async function findParts(id) {
   const item = state.stash.find((i) => i.id === id);
   if (!item) return;
   state.replaceItem = item;
-  state.aiFilters = null;
-  state.aiEngine = null;
+  state.specFilters = null;
+  state.parseSummary = null;
   $("#mSearch").value = "";
   $("#mCondition").value = "all";
   $("#mMax").value = "";
@@ -901,8 +892,8 @@ async function runLiveQuery() {
     const el = $(sel);
     if (el) el.value = value;
   }
-  state.aiFilters = null;
-  state.aiEngine = null;
+  state.specFilters = null;
+  state.parseSummary = null;
 
   try {
     const res = await call(api.searchMarket(term, marketTarget()));
@@ -1371,7 +1362,6 @@ function renderReplaceTarget() {
       <div class="muted small">${esc(bits)}</div>
     </div>
     <div class="target-actions">
-      <button class="ghost mini" data-ai-target="1">AI compatible parts</button>
       <button class="ghost mini" data-ds-target="opensooq">Match on OpenSooq</button>
       <button class="ghost mini" data-ds-target="retail">Match in retail</button>
       <button class="ghost mini" data-clear-target="1">Clear</button>
@@ -1804,25 +1794,26 @@ function marketKey() {
   return state.replaceItem ? `stash:${state.replaceItem.id}` : state.view ? `device:${state.view.device.id}` : "none";
 }
 
-async function runAiSearch(useTarget = false) {
-  const query = useTarget
-    ? [state.replaceItem?.title, state.replaceItem?.detail].filter(Boolean).join(" ")
-    : $("#mSearch").value.trim();
+/**
+ * Turn a phrase like "ddr4 16gb laptop ram under 100" into filters. Plain
+ * pattern matching in the main process — no model, local or remote.
+ */
+async function runSmartSearch() {
+  const query = $("#mSearch").value.trim();
   if (!query) return;
-  const btn = $("#aiAsk");
+  const btn = $("#mParseBtn");
   btn.disabled = true;
   const label = btn.textContent;
-  btn.textContent = t("ai.thinking");
+  btn.textContent = t("market.parsing");
   try {
-    const res = await call(api.aiSearch(query, window.I18N.lang));
-    state.aiFilters = res.filters;
-    state.aiEngine = res;
+    const res = await call(api.parseQuery(query));
+    state.specFilters = res.filters;
+    state.parseSummary = res.summary;
     if (res.filters.category) $("#mCategory").value = res.filters.category;
     if (res.filters.condition) $("#mCondition").value = res.filters.condition;
     if (res.filters.maxPriceJod) $("#mMax").value = res.filters.maxPriceJod;
     $("#mSearch").value = "";
     renderMarket();
-    toast(res.engine === "local-model" ? t("ai.model", { model: res.model }) : t("ai.fallback"));
   } catch (err) {
     toast(err.message, "error");
   } finally {
@@ -1915,27 +1906,26 @@ function listingRow(l) {
     </div>`;
 }
 
-function renderAiChips() {
-  const el = $("#aiChips");
+function renderFilterChips() {
+  const el = $("#mFilterChips");
   if (!el) return;
-  const ai = state.aiFilters;
-  if (!ai) {
+  const filters = state.specFilters;
+  if (!filters) {
     el.classList.add("hidden");
     el.innerHTML = "";
     return;
   }
   const bits = [
-    ai.category,
-    ai.ramGen,
-    ai.formFactor,
-    ai.minCapacityGb ? `${ai.minCapacityGb} GB+` : null,
-    ai.maxPriceJod ? `≤ ${ai.maxPriceJod} JOD` : null,
-    ai.condition,
+    filters.category,
+    filters.ramGen,
+    filters.formFactor,
+    filters.minCapacityGb ? `${filters.minCapacityGb} GB+` : null,
+    filters.maxPriceJod ? `≤ ${filters.maxPriceJod} JOD` : null,
+    filters.condition,
   ].filter(Boolean);
-  const engine = state.aiEngine?.engine === "local-model" ? state.aiEngine.model : "keywords";
-  el.innerHTML = `<span class="badge blue">${esc(engine)}</span> ${bits
+  el.innerHTML = `${bits
     .map((b) => `<span class="chip">${esc(b)}</span>`)
-    .join("")} <button class="ghost mini" data-ai-clear>${t("ai.clear")}</button>`;
+    .join("")} <button class="ghost mini" data-filters-clear>${t("market.clearFilters")}</button>`;
   el.classList.remove("hidden");
 }
 
@@ -1998,15 +1988,15 @@ function renderMarket() {
       if (l.priceJod > max) return false;
       if (q && !normText(`${l.title} ${l.tags.join(" ")} ${l.oqCategory} ${l.brand ?? ""}`).includes(q)) return false;
 
-      const ai = state.aiFilters;
-      if (ai) {
-        if (ai.ramGen && (l.ramGen ?? "") !== ai.ramGen) return false;
-        if (ai.formFactor && (l.formFactor ?? "") !== ai.formFactor) return false;
-        if (ai.minCapacityGb && (l.capacityGb ?? 0) < ai.minCapacityGb) return false;
-        const hasSpec = Boolean(ai.ramGen || ai.formFactor || ai.minCapacityGb);
-        if (!hasSpec && ai.keywords?.length) {
+      const spec = state.specFilters;
+      if (spec) {
+        if (spec.ramGen && (l.ramGen ?? "") !== spec.ramGen) return false;
+        if (spec.formFactor && (l.formFactor ?? "") !== spec.formFactor) return false;
+        if (spec.minCapacityGb && (l.capacityGb ?? 0) < spec.minCapacityGb) return false;
+        const hasSpec = Boolean(spec.ramGen || spec.formFactor || spec.minCapacityGb);
+        if (!hasSpec && spec.keywords?.length) {
           const hay = normText(`${l.title} ${l.tags.join(" ")} ${l.brand ?? ""}`);
-          if (!ai.keywords.some((k) => hay.includes(normText(k)))) return false;
+          if (!spec.keywords.some((k) => hay.includes(normText(k)))) return false;
         }
       }
       return true;
@@ -2047,16 +2037,14 @@ function renderMarket() {
     hiddenIncompatible ? t("market.noMatchIncompatible", { n: hiddenIncompatible }) : "",
   ].filter(Boolean);
 
-  renderAiChips();
-  const aiNote = $("#aiNote");
-  if (aiNote) {
-    aiNote.textContent = state.aiStatus?.available
-      ? t("ai.noteModel", { model: state.aiStatus.model })
-      : t("ai.noteKeywords");
+  renderFilterChips();
+  const parseNote = $("#mParseNote");
+  if (parseNote) {
+    parseNote.textContent = state.parseSummary ? t("market.parsed", { summary: state.parseSummary }) : "";
   }
   $("#marketList").innerHTML = filtered.length
     ? filtered.slice(0, 150).map(listingRow).join("")
-    : `<p class="muted small">${t("market.noMatch")}${state.aiFilters ? " " + t("market.aiEmpty") : ""}${
+    : `<p class="muted small">${t("market.noMatch")}${state.specFilters ? " " + t("market.filtersStrict") : ""}${
         emptyHints.length ? " " + emptyHints.join(" ") : ""
       }</p>`;
 }

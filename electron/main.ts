@@ -7,9 +7,9 @@ import QRCode from "qrcode";
 import { Store, type SecretBox } from "../lib/store";
 import { compactForQr, verifyPassport } from "../lib/passport";
 import { renderPassportHtml } from "./passport-pdf";
-import { aiSearch, aiStatus } from "../lib/ai";
 import { Deepseek, DeepseekError, DEFAULT_MODEL } from "../lib/deepseek";
 import { priceRowsWithLinks } from "../lib/retail";
+import { parseQuery } from "../lib/market/query";
 import { scanConnected } from "../lib/detect/connected";
 import { scanLan } from "../lib/detect/lan";
 import { renderRecycleHtml } from "./recycle-pdf";
@@ -257,11 +257,8 @@ function registerIpc() {
     return true;
   });
 
-  handle("ai:status", () => aiStatus());
-  handle("ai:search", (payload) => {
-    const { query, lang } = payload as { query: string; lang?: "en" | "ar" };
-    return aiSearch(query, lang === "ar" ? "ar" : "en");
-  });
+  // Deterministic: turns a phrase into filters. No model involved.
+  handle("market:parse", (payload) => parseQuery((payload as { query: string }).query));
 
   /* ---------------- optional DeepSeek integration ---------------- */
 

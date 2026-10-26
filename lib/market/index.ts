@@ -10,6 +10,7 @@ import { flagOutliers, parseListing } from "./parse";
 
 export { requirementsFrom } from "./compat";
 export { fetchMarketListings, fetchMarketQuery, marketQueryUrl, MARKET_SOURCES } from "./fetch";
+export { parseQuery, type QueryFilters, type QueryParse } from "./query";
 
 export function buildMarket(
   raw: RawListing[],

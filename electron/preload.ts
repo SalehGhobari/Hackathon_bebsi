@@ -19,8 +19,7 @@ const api = {
   searchMarket: (term: string, target?: string | { deviceId?: string; stashId?: string }) =>
     invoke("market:search", { term, target }),
   listingImage: (listingId: string) => invoke("market:image", { listingId }),
-  aiStatus: () => invoke("ai:status"),
-  aiSearch: (query: string, lang?: string) => invoke("ai:search", { query, lang }),
+  parseQuery: (query: string) => invoke("market:parse", { query }),
 
   deepseekStatus: () => invoke("deepseek:status"),
   deepseekSetKey: (key: string) => invoke("deepseek:setKey", { key }),

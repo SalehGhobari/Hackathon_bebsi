@@ -10,8 +10,8 @@ Built for the Jordanian market: local prices, local classifieds, local recyclers
 
 > Scan it. Stash it. Replace what is worth keeping, recycle what is not.
 
-No account and no server. Everything stays on the machine it runs on unless you switch on the optional DeepSeek
-matching described below.
+No account and no server. Everything stays on the machine it runs on, except the DeepSeek queries you run yourself
+through its API — see [Data and privacy](#data-and-privacy).
 
 ![Scan and stash](docs/scan-stash.png)
 
@@ -37,14 +37,13 @@ reliability counters and thermal zones.
 
 ## Features
 
-| | |
+| Area | What it does |
 |---|---|
 | **Scan** | local hardware (battery, disks, SMART, RAM, thermals), removable/USB devices, private-LAN sweep |
 | **Replace** | live OpenSooq search plus a bundled offline index, with city, price and compatibility badges |
 | **Recycle** | per-item photos and specs, verified recycler, PDF handover manifest |
 | **Impact** | diverted kilograms, avoided CO₂e and recovered materials per stash |
 | **Arabic** | full RTL layout, Arabic market parsing and search |
-| **Local AI** | optional Ollama model turns a sentence into filters — never into prices, specs or health scores |
 
 ### Recycle
 
@@ -63,7 +62,9 @@ Type a part and search OpenSooq live — the query you enter is fetched and pars
 not limited to the bundled index. The bundled index stays for offline use, and if a live fetch returns nothing the
 stored listings remain and the note says which was used.
 
-Filter in Arabic or English, by category, condition and price, and hide incompatible parts. Compatibility is derived
+Filter in Arabic or English, by category, condition and price, and hide incompatible parts. Typing a phrase like
+"ddr4 16gb laptop ram under 100" and pressing **Search** turns it into filters with plain pattern matching — no model
+involved, so it behaves the same offline. Compatibility is derived
 from the detected machine (DDR generation, SO-DIMM/DIMM, NVMe/SATA) and is conservative: a known mismatch is flagged,
 missing data says *check* rather than guessing.
 
@@ -86,8 +87,8 @@ Design rules:
 
 1. **Deterministic data.** Prices, compatibility, mass and impact never come from a model.
 2. **No invented numbers.** Missing values are `unknown`; estimates are labelled and shown as ranges.
-3. **Local by default.** No telemetry, accounts, update pings or remote assets. The one exception is the optional
-   DeepSeek matching, which is off until you turn it on.
+3. **Local by default.** No telemetry, accounts, update pings or remote assets. The only traffic is the OpenSooq search
+   you trigger, and the DeepSeek queries you run through its API.
 
 ## Data and privacy
 
@@ -95,14 +96,15 @@ Design rules:
 - Serials are hashed; delete the file to delete everything.
 - The renderer has no network or Node access.
 - The wipe record is an operator **attestation**, not cryptographic proof of erasure — the UI says so.
-- **Nothing leaves the machine unless you enable the optional DeepSeek matching.**
+- Two things reach the network, both user-initiated: an OpenSooq search when you type one, and any DeepSeek query you
+  run through its API. Nothing else leaves the machine.
 
 ## Optional: DeepSeek matching
 
-Off by default, and the app works fully without it. When on, Fahes sends the part name, category and detected specs to
-`api.deepseek.com`; nothing else is sent and the renderer keeps `connect-src 'none'`. The key is stored through
-Electron's `safeStorage`, and the Info tab says whether it is really encrypted or only obfuscated (which is what
-happens on a Linux box with no keyring).
+Off by default, and the app works fully without it. When you run a query, Fahes sends the part name, category and
+detected specs to `api.deepseek.com` and **DeepSeek handles that query** — nothing else is sent, and the renderer keeps
+`connect-src 'none'`. The key is stored through Electron's `safeStorage`, and the Info tab says whether it is really
+encrypted or only obfuscated (which is what happens on a Linux box with no keyring).
 
 It does two things: **matching** ranks a stashed item against the OpenSooq index or the retail price book, and
 **specs** fills in a recycle item's weight, dimensions and materials — automatically when you stash something, or via
